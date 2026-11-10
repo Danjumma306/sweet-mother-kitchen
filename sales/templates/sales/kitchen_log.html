@@ -1,0 +1,62 @@
+{% extends "sales/base.html" %}
+
+{% block title %}Kitchen Log - Sweet Mother's Kitchen{% endblock %}
+
+{% block extra_css %}
+<style>
+    .wrap { max-width: 760px; margin: 0 auto; }
+    h1 { font-size: 22px; margin: 0 0 4px; }
+    h2 { font-size: 16px; margin: 0 0 10px; }
+    .date { color: #666; margin: 0 0 6px; }
+    .hint { color: #666; font-size: 14px; margin: 0 0 14px; }
+    .card { background: #fff; padding: 18px; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,.15); margin-bottom: 16px; }
+    .msg { padding: 10px 14px; border-radius: 6px; margin-bottom: 12px; }
+    .msg.success { background: #d4edda; color: #155724; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid #eee; font-size: 15px; }
+    th { color: #555; font-size: 13px; }
+    .num { text-align: right; }
+    input[type=number] { width: 110px; padding: 8px; font-size: 15px; border: 1px solid #ccc; border-radius: 4px; text-align: right; }
+    .save { background: #2e7d32; color: #fff; width: 100%; padding: 12px; font-size: 17px; border: 0; border-radius: 4px; cursor: pointer; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="wrap">
+    <h1>Kitchen Production Log</h1>
+    <p class="date">{{ today|date:"l, j F Y" }}</p>
+    <p class="hint">Enter how much of each item was prepared today. Leave a box empty if it was not prepared.</p>
+
+    {% for message in messages %}
+        <div class="msg {{ message.tags }}">{{ message }}</div>
+    {% endfor %}
+
+    <form method="post">
+        {% csrf_token %}
+
+        {% for category, rows in groups %}
+        <div class="card">
+            <h2>{{ category }}</h2>
+            <table>
+                <thead>
+                    <tr><th>Item</th><th>Unit</th><th class="num">Quantity prepared</th></tr>
+                </thead>
+                <tbody>
+                    {% for row in rows %}
+                    <tr>
+                        <td>{{ row.item.name }}</td>
+                        <td>{{ row.item.unit }}</td>
+                        <td class="num">
+                            <input type="number" name="qty_{{ row.item.id }}" min="0" value="{{ row.qty }}">
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endfor %}
+
+        <button type="submit" class="save">Save today's log</button>
+    </form>
+</div>
+{% endblock %}
