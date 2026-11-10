@@ -1,0 +1,105 @@
+{% extends "sales/base.html" %}
+
+{% block title %}Sales List - Sweet Mother's Kitchen{% endblock %}
+
+{% block extra_css %}
+<style>
+    .wrap { max-width: 1000px; margin: 0 auto; }
+    h1 { font-size: 22px; margin-top: 0; }
+    .card { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,.15); overflow-x: auto; }
+    .msg { padding: 10px 14px; border-radius: 6px; margin-bottom: 12px; }
+    .msg.success { background: #d4edda; color: #155724; }
+    .msg.error { background: #f8d7da; color: #721c24; }
+    .filter { display: flex; gap: 10px; align-items: center; margin-bottom: 14px; flex-wrap: wrap; }
+    .filter input { padding: 8px; font-size: 15px; border: 1px solid #ccc; border-radius: 4px; }
+    .summary { margin-bottom: 14px; font-size: 15px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid #eee; font-size: 14px; vertical-align: top; }
+    th { color: #555; font-size: 13px; }
+    .num { text-align: right; white-space: nowrap; }
+    .badge { padding: 3px 8px; border-radius: 10px; font-size: 12px; }
+    .badge.ok { background: #d4edda; color: #155724; }
+    .badge.void { background: #f8d7da; color: #721c24; }
+    tr.voided td { color: #888; }
+    .void-form { display: flex; gap: 6px; }
+    .void-form input { padding: 6px; font-size: 13px; border: 1px solid #ccc; border-radius: 4px; width: 140px; }
+    .btn { padding: 6px 12px; font-size: 13px; border: 0; border-radius: 4px; cursor: pointer; background: #f8d7da; color: #721c24; }
+    .btn.go { background: #2e7d32; color: #fff; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="wrap">
+    <h1>Sales List</h1>
+
+    {% for message in messages %}
+        <div class="msg {{ message.tags }}">{{ message }}</div>
+    {% endfor %}
+
+    <div class="card">
+        <form method="get" class="filter">
+            <label for="date">Date:</label>
+            <input type="date" id="date" name="date" value="{{ day|date:'Y-m-d' }}">
+            <button type="submit" class="btn go">Show</button>
+        </form>
+
+        <div class="summary">
+            <strong>{{ completed_count }}</strong> completed sale{{ completed_count|pluralize }},
+            total <strong>GH₵ {{ day_total|floatformat:2 }}</strong> (voided sales are not counted)
+        </div>
+
+        {% if sales %}
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Time</th>
+                    <th>Cashier</th>
+                    <th>Items</th>
+                    <th>Payment</th>
+                    <th class="num">Total</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for sale in sales %}
+                <tr class="{% if sale.status == 'VOIDED' %}voided{% endif %}">
+                    <td>{{ sale.pk }}</td>
+                    <td>{{ sale.created_at|time:"H:i" }}</td>
+                    <td>{{ sale.cashier.username }}</td>
+                    <td>
+                        {% for line in sale.lines.all %}{{ line.quantity }} x {{ line.item.name }}{% if not forloop.last %}, {% endif %}{% endfor %}
+                    </td>
+                    <td>{{ sale.get_payment_method_display }}</td>
+                    <td class="num">GH₵ {{ sale.gross_total|floatformat:2 }}</td>
+                    <td>
+                        {% if sale.status == 'VOIDED' %}
+                            <span class="badge void">Voided</span>
+                        {% else %}
+                            <span class="badge ok">Completed</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if sale.status == 'VOIDED' %}
+                            Reason: {{ sale.void_reason }}<br>
+                            By: {{ sale.approved_by.username }}
+                        {% else %}
+                            <form method="post" action="{% url 'void_sale' sale.pk %}" class="void-form"
+                                  onsubmit="return confirm('Void sale #{{ sale.pk }}?');">
+                                {% csrf_token %}
+                                <input type="text" name="void_reason" placeholder="Reason" maxlength="200" required>
+                                <button type="submit" class="btn">Void</button>
+                            </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+            <p>No sales recorded on this date.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

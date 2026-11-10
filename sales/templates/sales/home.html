@@ -24,17 +24,10 @@
         </a>
 
         {% if is_manager %}
-        <div class="tile soon">
+        <a class="tile" href="{% url 'sales_list' %}">
             <h2>Sales List</h2>
-            <p>Review sales and void mistakes. Coming soon.</p>
-        </div>
-        {% endif %}
-
-        {% if is_owner %}
-        <div class="tile soon">
-            <h2>Daily Reports</h2>
-            <p>Daily totals and the report archive. Coming soon.</p>
-        </div>
+            <p>Review the day's sales and void mistakes.</p>
+        </a>
         {% endif %}
     </div>
 </div>

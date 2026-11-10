@@ -1,8 +1,15 @@
+from datetime import date
+from functools import wraps
+
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import PermissionDenied
 from django.db import transaction
 from django.db.models import Prefetch
-from django.shortcuts import redirect, render
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
+from django.utils.dateparse import parse_date
+from django.views.decorators.http import require_POST
 
 from .models import Category, MenuItem, Sale, SaleLine
 
@@ -84,3 +91,54 @@ def home(request):
         "is_manager": is_manager,
         "is_owner": is_owner,
     })
+
+def is_manager(user):
+        return user.is_superuser or user.groups.filter(name="Manager").exists()
+
+
+def manager_required(view):
+    @login_required
+    @wraps(view)
+    def wrapper(request, *args, **kwargs):
+        if not is_manager(request.user):
+            raise PermissionDenied
+        return view(request, *args, **kwargs)
+    return wrapper
+
+
+@manager_required
+def sales_list(request):
+    day = parse_date(request.GET.get("date", "")) or date.today()
+    sales = list(
+        Sale.objects.filter(date=day)
+        .select_related("cashier", "approved_by")
+        .prefetch_related("lines__item")
+        .order_by("-created_at")
+    )
+    completed = [s for s in sales if s.status == Sale.Status.COMPLETED]
+    return render(request, "sales/sales_list.html", {
+        "day": day,
+        "sales": sales,
+        "day_total": sum(s.gross_total for s in completed),
+        "completed_count": len(completed),
+    })
+
+
+@manager_required
+@require_POST
+def void_sale(request, pk):
+    sale = get_object_or_404(Sale, pk=pk)
+    reason = request.POST.get("void_reason", "").strip()
+
+    if sale.status == Sale.Status.VOIDED:
+        messages.error(request, f"Sale #{sale.pk} is already voided.")
+    elif not reason:
+        messages.error(request, "Please enter a reason to void a sale.")
+    else:
+        sale.status = Sale.Status.VOIDED
+        sale.void_reason = reason[:200]
+        sale.approved_by = request.user
+        sale.save()
+        messages.success(request, f"Sale #{sale.pk} voided.")
+
+    return redirect(f"{reverse('sales_list')}?date={sale.date.isoformat()}")
