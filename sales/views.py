@@ -1,3 +1,4 @@
+import csv
 from collections import defaultdict
 from datetime import date, timedelta
 from decimal import Decimal
@@ -8,6 +9,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
 from django.db.models import Prefetch
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.dateparse import parse_date
@@ -218,3 +220,73 @@ def daily_report(request):
         "change_pct": change_pct,
         "has_sales": bool(sales),
     })
+
+def archive_range(request):
+    today = date.today()
+    start = parse_date(request.GET.get("start", "")) or today - timedelta(days=29)
+    end = parse_date(request.GET.get("end", "")) or today
+    if start > end:
+        start, end = end, start
+    return start, end
+
+
+def day_summaries(start, end):
+    """One summary row per day that has sales, newest first."""
+    sales = Sale.objects.filter(date__range=(start, end)).prefetch_related("lines")
+    days = {}
+    for sale in sales:
+        row = days.setdefault(sale.date, {
+            "date": sale.date,
+            "completed": 0,
+            "gross": Decimal("0"),
+            "voids": Decimal("0"),
+            "cash": Decimal("0"),
+            "momo": Decimal("0"),
+            "card": Decimal("0"),
+        })
+        total = sale.gross_total
+        row["gross"] += total
+        if sale.status == Sale.Status.VOIDED:
+            row["voids"] += total
+        else:
+            row["completed"] += 1
+            row[sale.payment_method.lower()] += total
+
+    rows = sorted(days.values(), key=lambda r: r["date"], reverse=True)
+    for row in rows:
+        row["net"] = row["gross"] - row["voids"]
+    return rows
+
+
+@report_required
+def report_archive(request):
+    start, end = archive_range(request)
+    rows = day_summaries(start, end)
+    return render(request, "sales/report_archive.html", {
+        "start": start,
+        "end": end,
+        "rows": rows,
+        "day_count": len(rows),
+        "total_net": sum(r["net"] for r in rows),
+    })
+
+
+@report_required
+def export_archive_csv(request):
+    start, end = archive_range(request)
+    rows = day_summaries(start, end)
+
+    response = HttpResponse(content_type="text/csv")
+    response["Content-Disposition"] = f'attachment; filename="sales_{start}_to_{end}.csv"'
+    writer = csv.writer(response)
+    writer.writerow([
+        "Date", "Completed sales", "Gross", "Voids", "Net",
+        "Cash", "Mobile Money", "Card",
+    ])
+    for r in reversed(rows):  # oldest first in the file
+        writer.writerow([
+            r["date"].isoformat(), r["completed"],
+            f"{r['gross']:.2f}", f"{r['voids']:.2f}", f"{r['net']:.2f}",
+            f"{r['cash']:.2f}", f"{r['momo']:.2f}", f"{r['card']:.2f}",
+        ])
+    return response
