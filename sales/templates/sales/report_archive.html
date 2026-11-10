@@ -1,0 +1,79 @@
+{% extends "sales/base.html" %}
+
+{% block title %}Report Archive - Sweet Mother's Kitchen{% endblock %}
+
+{% block extra_css %}
+<style>
+    .wrap { max-width: 1000px; margin: 0 auto; }
+    h1 { font-size: 22px; margin: 0 0 14px; }
+    .card { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,.15); overflow-x: auto; }
+    .filter { display: flex; gap: 10px; align-items: center; margin-bottom: 14px; flex-wrap: wrap; }
+    .filter input { padding: 8px; font-size: 15px; border: 1px solid #ccc; border-radius: 4px; }
+    .btn { padding: 8px 14px; font-size: 14px; border: 0; border-radius: 4px; cursor: pointer; background: #2e7d32; color: #fff; text-decoration: none; display: inline-block; }
+    .btn.grey { background: #e7e7e7; color: #222; }
+    .summary { margin-bottom: 14px; font-size: 15px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid #eee; font-size: 14px; }
+    th { color: #555; font-size: 13px; }
+    .num { text-align: right; white-space: nowrap; }
+    a.view { color: #2e7d32; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="wrap">
+    <h1>Report Archive</h1>
+
+    <div class="card">
+        <form method="get" class="filter">
+            <label for="start">From:</label>
+            <input type="date" id="start" name="start" value="{{ start|date:'Y-m-d' }}">
+            <label for="end">To:</label>
+            <input type="date" id="end" name="end" value="{{ end|date:'Y-m-d' }}">
+            <button type="submit" class="btn">Search</button>
+            <a class="btn grey" href="{% url 'export_archive_csv' %}?start={{ start|date:'Y-m-d' }}&end={{ end|date:'Y-m-d' }}">Export CSV</a>
+        </form>
+
+        <div class="summary">
+            <strong>{{ day_count }}</strong> day{{ day_count|pluralize }} with sales between
+            {{ start|date:"j M Y" }} and {{ end|date:"j M Y" }},
+            total net <strong>GH₵ {{ total_net|floatformat:2 }}</strong>
+        </div>
+
+        {% if rows %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th class="num">Sales</th>
+                    <th class="num">Gross</th>
+                    <th class="num">Voids</th>
+                    <th class="num">Net</th>
+                    <th class="num">Cash</th>
+                    <th class="num">Mobile Money</th>
+                    <th class="num">Card</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in rows %}
+                <tr>
+                    <td>{{ r.date|date:"D, j M Y" }}</td>
+                    <td class="num">{{ r.completed }}</td>
+                    <td class="num">{{ r.gross|floatformat:2 }}</td>
+                    <td class="num">{{ r.voids|floatformat:2 }}</td>
+                    <td class="num"><strong>{{ r.net|floatformat:2 }}</strong></td>
+                    <td class="num">{{ r.cash|floatformat:2 }}</td>
+                    <td class="num">{{ r.momo|floatformat:2 }}</td>
+                    <td class="num">{{ r.card|floatformat:2 }}</td>
+                    <td><a class="view" href="{% url 'daily_report' %}?date={{ r.date|date:'Y-m-d' }}">View</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+            <p>No sales recorded in this date range.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
