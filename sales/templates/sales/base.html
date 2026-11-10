@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Sweet Mother's Kitchen{% endblock %}</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; background: #f5f5f5; margin: 0; }
+        .topbar { background: #2e7d32; color: #fff; display: flex; align-items: center; justify-content: space-between; padding: 10px 20px; flex-wrap: wrap; gap: 10px; }
+        .brand { font-weight: bold; font-size: 18px; }
+        .links a { color: #fff; text-decoration: none; margin-right: 18px; font-size: 15px; }
+        .links a:hover { text-decoration: underline; }
+        .user { display: flex; align-items: center; gap: 12px; font-size: 14px; }
+        .user form { margin: 0; }
+        .user button { padding: 6px 12px; font-size: 14px; background: #fff; color: #2e7d32; border: 0; border-radius: 4px; cursor: pointer; }
+        .container { padding: 20px; }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+<nav class="topbar">
+    <div class="brand">Sweet Mother's Kitchen</div>
+        <div class="links">
+        <a href="{% url 'home' %}">Home</a>
+        <a href="{% url 'sales_entry' %}">New Sale</a>
+    </div>
+    <div class="user">
+        <span>{{ user.username }}</span>
+        <form method="post" action="{% url 'logout' %}">
+            {% csrf_token %}
+            <button type="submit">Log out</button>
+        </form>
+    </div>
+</nav>
+
+<main class="container">
+    {% block content %}{% endblock %}
+</main>
+
+{% block scripts %}{% endblock %}
+</body>
+</html>

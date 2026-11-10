@@ -1,32 +1,30 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>New Sale - Sweet Mother Kitchen</title>
-    <style>
-        * { box-sizing: border-box; }
-        body { font-family: Arial, sans-serif; background: #f5f5f5; margin: 0; padding: 20px; }
-        .card { max-width: 760px; margin: 0 auto; background: #fff; padding: 24px; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,.15); }
-        h1 { margin-top: 0; font-size: 22px; }
-        .msg { padding: 10px 14px; border-radius: 6px; margin-bottom: 12px; }
-        .msg.success { background: #d4edda; color: #155724; }
-        .msg.error { background: #f8d7da; color: #721c24; }
-        table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
-        th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid #eee; }
-        th { font-size: 13px; color: #555; }
-        select, input[type=number] { width: 100%; padding: 8px; font-size: 15px; border: 1px solid #ccc; border-radius: 4px; }
-        .num { text-align: right; white-space: nowrap; }
-        button { padding: 10px 16px; font-size: 15px; border: 0; border-radius: 4px; cursor: pointer; }
-        .add { background: #e7e7e7; }
-        .remove { background: #f8d7da; color: #721c24; padding: 6px 10px; }
-        .save { background: #2e7d32; color: #fff; width: 100%; margin-top: 14px; font-size: 17px; }
-        .pay { margin: 16px 0 8px; }
-        .pay label { margin-right: 16px; font-size: 15px; }
-        .grand { text-align: right; font-size: 20px; font-weight: bold; margin-top: 8px; }
-    </style>
-</head>
-<body>
+{% extends "sales/base.html" %}
+
+{% block title %}New Sale - Sweet Mother's Kitchen{% endblock %}
+
+{% block extra_css %}
+<style>
+    .card { max-width: 760px; margin: 0 auto; background: #fff; padding: 24px; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,.15); }
+    h1 { margin-top: 0; font-size: 22px; }
+    .msg { padding: 10px 14px; border-radius: 6px; margin-bottom: 12px; }
+    .msg.success { background: #d4edda; color: #155724; }
+    .msg.error { background: #f8d7da; color: #721c24; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
+    th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid #eee; }
+    th { font-size: 13px; color: #555; }
+    select, input[type=number] { width: 100%; padding: 8px; font-size: 15px; border: 1px solid #ccc; border-radius: 4px; }
+    .num { text-align: right; white-space: nowrap; }
+    .card button { padding: 10px 16px; font-size: 15px; border: 0; border-radius: 4px; cursor: pointer; }
+    .add { background: #e7e7e7; }
+    .remove { background: #f8d7da; color: #721c24; padding: 6px 10px; }
+    .save { background: #2e7d32; color: #fff; width: 100%; margin-top: 14px; font-size: 17px; }
+    .pay { margin: 16px 0 8px; }
+    .pay label { margin-right: 16px; font-size: 15px; }
+    .grand { text-align: right; font-size: 20px; font-weight: bold; margin-top: 8px; }
+</style>
+{% endblock %}
+
+{% block content %}
 <div class="card">
     <h1>New Sale</h1>
 
@@ -93,7 +91,9 @@
         <td><button type="button" class="remove">X</button></td>
     </tr>
 </template>
+{% endblock %}
 
+{% block scripts %}
 <script>
     const lines = document.getElementById("lines");
     const template = document.getElementById("line-template");
@@ -133,5 +133,4 @@
 
     addLine(); // start with one empty row
 </script>
-</body>
-</html>
+{% endblock %}

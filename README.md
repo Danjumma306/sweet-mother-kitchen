@@ -1,4 +1,4 @@
-# Sweet Mother Kitchen: Daily Sales Report System
+# Sweet Mother's Kitchen: Daily Sales Report System
 
 A web application that records restaurant sales and produces accurate daily
 sales reports, replacing handwritten exercise books.
@@ -9,7 +9,7 @@ sales reports, replacing handwritten exercise books.
 
 ## The Problem
 
-Sweet Mother Kitchen prepares its daily sales report by hand. Totals are
+Sweet Mother's Kitchen prepares its daily sales report by hand. Totals are
 often wrong, payments from different methods (cash, mobile money, card) get
 mixed up, and past reports are hard to find. The owner cannot trust the
 figures or easily compare one day with another.

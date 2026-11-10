@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Log in - Sweet Mother's Kitchen</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; background: #f5f5f5; margin: 0; display: flex; min-height: 100vh; align-items: center; justify-content: center; }
+        .card { width: 100%; max-width: 380px; background: #fff; padding: 28px; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,.15); }
+        h1 { margin: 0 0 4px; font-size: 22px; }
+        p.sub { margin: 0 0 20px; color: #666; font-size: 14px; }
+        label { display: block; margin: 12px 0 4px; font-size: 14px; }
+        input { width: 100%; padding: 10px; font-size: 15px; border: 1px solid #ccc; border-radius: 4px; }
+        button { width: 100%; margin-top: 20px; padding: 12px; font-size: 16px; background: #2e7d32; color: #fff; border: 0; border-radius: 4px; cursor: pointer; }
+        .error { background: #f8d7da; color: #721c24; padding: 10px 14px; border-radius: 6px; margin-bottom: 12px; font-size: 14px; }
+    </style>
+</head>
+<body>
+<div class="card">
+    <h1>Sweet Mother's Kitchen</h1>
+    <p class="sub">Staff login</p>
+
+    {% if form.errors %}
+        <div class="error">Wrong username or password. Please try again.</div>
+    {% endif %}
+
+    <form method="post">
+        {% csrf_token %}
+        <label for="id_username">Username</label>
+        <input type="text" name="username" id="id_username" autofocus required>
+
+        <label for="id_password">Password</label>
+        <input type="password" name="password" id="id_password" required>
+
+        <input type="hidden" name="next" value="{{ next }}">
+        <button type="submit">Log in</button>
+    </form>
+</div>
+</body>
+</html>
