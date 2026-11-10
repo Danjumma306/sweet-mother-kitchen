@@ -19,9 +19,10 @@ figures or easily compare one day with another.
 | Feature | Description | Status |
 |---|---|---|
 | Sales Entry | Record each sale: items grouped by category, quantity, unit price, live totals, payment method | Done |
-| Discounts and voids | Mark discounts and voided sales, with manager approval | Planned |
-| Daily Sales Report | Gross and net sales, sales by payment method and category, best sellers | Planned |
-| Report Archive | Search past reports by date and export them as CSV | Planned |
+| Login and roles | Staff login with Cashier, Manager and Owner roles | Done |
+| Void handling | Managers void mistaken sales with a recorded reason; voided sales are excluded from totals | Done |
+| Daily Sales Report | Gross, voids and net sales, sales by payment method and category, best sellers, previous-day comparison | Done |
+| Report Archive | Search past days by date range, view each day's report and export to CSV | Done |
 
 ## Users
 
@@ -51,7 +52,7 @@ sweet-mother-kitchen/
 │   ├── migrations/          Database migrations
 │   ├── templates/
 │   │   ├── registration/    Login page
-│   │   └── sales/           Base layout, home, sales entry, sales list
+│   │   └── sales/           Base layout, home, sales entry, sales list, reports
 │   ├── models.py            Category, MenuItem, Sale, SaleLine
 │   ├── views.py             Page logic
 │   └── urls.py              Sales URLs
@@ -137,12 +138,8 @@ users and menu items.
 | Role | Signs in and sees | Can do |
 |---|---|---|
 | Cashier | Goes straight to the **New Sale** form | Record sales |
-| Manager | Home page with **New Sale** and **Sales List** | Record sales, review a day's sales, void mistakes |
-| Owner | Home page with all available tiles | Everything a manager can, plus reports (coming soon) |
-
-Accounts are created by an administrator in `/admin/` under **Users**. Add each
-user to the right group (Cashier, Manager or Owner). Leave **Staff status**
-unticked so staff cannot open the admin site.
+| Manager | Home page with **New Sale**, **Sales List**, **Daily Report** and **Report Archive** | Record sales, void mistakes, view reports |
+| Owner | Home page with **New Sale**, **Daily Report** and **Report Archive** | View reports and export CSV |
 
 ### Recording a sale
 
@@ -162,12 +159,25 @@ unticked so staff cannot open the admin site.
 
 ## Team
 
+
 | Member | Role |
 |---|---|
 | Desmond Zambogunaa | Quality and Documentation Lead |
 | Comfort Akorfa Yikpa | Product Owner |
 | Mohammed Osman | Scrum Master |
 
+
+### Viewing reports (managers and owners)
+
+1. Click **Daily Report** on the home page and choose a date. It shows gross
+   sales, voids, net sales, sales by payment method and category, best sellers
+   and the day's voided sales, with a comparison to the previous day.
+2. Click **Report Archive** to see one row per day. Choose a start and end
+   date and click **Search**, then **View** to open that day's full report.
+3. Click **Export CSV** to download the rows in the chosen date range and open
+   them in Excel.
+
+Net sales are gross sales minus voided sales.
 
 ## Roadmap
 
@@ -177,8 +187,8 @@ unticked so staff cannot open the admin site.
 - [x] Payment method selector
 - [x] Login page, navigation and user roles
 - [x] Void handling for managers
-- [ ] Daily Sales Report
-- [ ] Report Archive with search and CSV export
+- [x] Daily Sales Report
+- [x] Report Archive with search and CSV export
 - [ ] Kitchen production log and shop closing report (to be confirmed with the client)
 
 ## Contributing
