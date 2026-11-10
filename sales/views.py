@@ -68,3 +68,19 @@ def sales_entry(request):
         "categories": categories,
         "payment_methods": Sale.PaymentMethod.choices,
     })
+
+
+@login_required
+def home(request):
+    groups = set(request.user.groups.values_list("name", flat=True))
+    is_manager = "Manager" in groups or request.user.is_superuser
+    is_owner = "Owner" in groups or request.user.is_superuser
+
+    # A cashier who is not also a manager or owner goes straight to the sales form
+    if "Cashier" in groups and not (is_manager or is_owner):
+        return redirect("sales_entry")
+
+    return render(request, "sales/home.html", {
+        "is_manager": is_manager,
+        "is_owner": is_owner,
+    })
