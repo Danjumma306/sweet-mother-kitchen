@@ -10,7 +10,6 @@
     .tile { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,.15); text-decoration: none; color: #222; display: block; }
     .tile h2 { margin: 0 0 6px; font-size: 18px; }
     .tile p { margin: 0; color: #666; font-size: 14px; }
-    .tile.soon { opacity: .55; cursor: default; }
 </style>
 {% endblock %}
 
@@ -27,6 +26,13 @@
         <a class="tile" href="{% url 'sales_list' %}">
             <h2>Sales List</h2>
             <p>Review the day's sales and void mistakes.</p>
+        </a>
+        {% endif %}
+
+        {% if is_owner or is_manager %}
+        <a class="tile" href="{% url 'daily_report' %}">
+            <h2>Daily Report</h2>
+            <p>Gross and net sales, payment methods, categories and best sellers.</p>
         </a>
         {% endif %}
     </div>

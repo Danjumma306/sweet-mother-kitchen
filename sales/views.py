@@ -1,4 +1,6 @@
-from datetime import date
+from collections import defaultdict
+from datetime import date, timedelta
+from decimal import Decimal
 from functools import wraps
 
 from django.contrib import messages
@@ -142,3 +144,77 @@ def void_sale(request, pk):
         messages.success(request, f"Sale #{sale.pk} voided.")
 
     return redirect(f"{reverse('sales_list')}?date={sale.date.isoformat()}")
+
+def can_view_reports(user):
+     return user.is_superuser or user.groups.filter(name__in=["Manager", "Owner"]).exists()
+
+
+def report_required(view):
+    @login_required
+    @wraps(view)
+    def wrapper(request, *args, **kwargs):
+        if not can_view_reports(request.user):
+            raise PermissionDenied
+        return view(request, *args, **kwargs)
+    return wrapper
+
+
+def day_net(day):
+    """Net sales (completed sales only) for one day."""
+    sales = Sale.objects.filter(date=day, status=Sale.Status.COMPLETED).prefetch_related("lines")
+    return sum(s.gross_total for s in sales)
+
+
+@report_required
+def daily_report(request):
+    day = parse_date(request.GET.get("date", "")) or date.today()
+    sales = list(
+        Sale.objects.filter(date=day)
+        .select_related("cashier", "approved_by")
+        .prefetch_related("lines__item__category")
+        .order_by("created_at")
+    )
+    completed = [s for s in sales if s.status == Sale.Status.COMPLETED]
+    voided = [s for s in sales if s.status == Sale.Status.VOIDED]
+
+    gross = sum(s.gross_total for s in sales)
+    voided_total = sum(s.gross_total for s in voided)
+    net = gross - voided_total
+
+    payments = {
+        value: {"label": label, "count": 0, "total": Decimal("0")}
+        for value, label in Sale.PaymentMethod.choices
+    }
+    categories = defaultdict(lambda: Decimal("0"))
+    items = defaultdict(lambda: {"qty": 0, "revenue": Decimal("0")})
+
+    for sale in completed:
+        payments[sale.payment_method]["count"] += 1
+        payments[sale.payment_method]["total"] += sale.gross_total
+        for line in sale.lines.all():
+            categories[line.item.category.name] += line.line_total
+            items[line.item.name]["qty"] += line.quantity
+            items[line.item.name]["revenue"] += line.line_total
+
+    best_sellers = sorted(items.items(), key=lambda pair: pair[1]["qty"], reverse=True)[:5]
+    category_rows = sorted(categories.items(), key=lambda pair: pair[1], reverse=True)
+
+    prev_day = day - timedelta(days=1)
+    prev_net = day_net(prev_day)
+    change_pct = ((net - prev_net) / prev_net * 100) if prev_net else None
+
+    return render(request, "sales/daily_report.html", {
+        "day": day,
+        "gross": gross,
+        "voided_total": voided_total,
+        "net": net,
+        "sale_count": len(completed),
+        "voided": voided,
+        "payments": list(payments.values()),
+        "category_rows": category_rows,
+        "best_sellers": best_sellers,
+        "prev_day": prev_day,
+        "prev_net": prev_net,
+        "change_pct": change_pct,
+        "has_sales": bool(sales),
+    })

@@ -1,0 +1,157 @@
+{% extends "sales/base.html" %}
+
+{% block title %}Daily Report - Sweet Mother's Kitchen{% endblock %}
+
+{% block extra_css %}
+<style>
+    .wrap { max-width: 900px; margin: 0 auto; }
+    h1 { font-size: 22px; margin: 0 0 6px; }
+    h2 { font-size: 16px; margin: 0 0 10px; }
+    .date { color: #666; margin: 0 0 14px; }
+    .filter { display: flex; gap: 10px; align-items: center; margin-bottom: 14px; flex-wrap: wrap; }
+    .filter input { padding: 8px; font-size: 15px; border: 1px solid #ccc; border-radius: 4px; }
+    .btn { padding: 8px 14px; font-size: 14px; border: 0; border-radius: 4px; cursor: pointer; background: #2e7d32; color: #fff; }
+    .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; margin-bottom: 16px; }
+    .tile { background: #fff; padding: 16px; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,.15); }
+    .tile .label { font-size: 13px; color: #666; }
+    .tile .value { font-size: 22px; font-weight: bold; margin-top: 4px; }
+    .tile.net .value { color: #2e7d32; }
+    .tile.void .value { color: #b71c1c; }
+    .card { background: #fff; padding: 18px; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,.15); margin-bottom: 16px; overflow-x: auto; }
+    .compare { margin-bottom: 16px; font-size: 15px; }
+    .up { color: #2e7d32; }
+    .down { color: #b71c1c; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid #eee; font-size: 14px; }
+    th { color: #555; font-size: 13px; }
+    .num { text-align: right; white-space: nowrap; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="wrap">
+    <h1>Daily Sales Report</h1>
+    <p class="date">{{ day|date:"l, j F Y" }}</p>
+
+    <form method="get" class="filter">
+        <label for="date">Date:</label>
+        <input type="date" id="date" name="date" value="{{ day|date:'Y-m-d' }}">
+        <button type="submit" class="btn">Show</button>
+    </form>
+
+    {% if not has_sales %}
+        <div class="card">No sales recorded on this date.</div>
+    {% else %}
+
+    <div class="tiles">
+        <div class="tile">
+            <div class="label">Gross sales</div>
+            <div class="value">GH₵ {{ gross|floatformat:2 }}</div>
+        </div>
+        <div class="tile void">
+            <div class="label">Voids</div>
+            <div class="value">GH₵ {{ voided_total|floatformat:2 }}</div>
+        </div>
+        <div class="tile net">
+            <div class="label">Net sales</div>
+            <div class="value">GH₵ {{ net|floatformat:2 }}</div>
+        </div>
+        <div class="tile">
+            <div class="label">Completed sales</div>
+            <div class="value">{{ sale_count }}</div>
+        </div>
+    </div>
+
+    <div class="compare">
+        Previous day ({{ prev_day|date:"j M" }}): GH₵ {{ prev_net|floatformat:2 }} net.
+        {% if change_pct is not None %}
+            {% if change_pct >= 0 %}
+                <span class="up">Up {{ change_pct|floatformat:1 }}%</span>
+            {% else %}
+                <span class="down">Down {{ change_pct|floatformat:1 }}%</span>
+            {% endif %}
+        {% else %}
+            No sales to compare with.
+        {% endif %}
+    </div>
+
+    <div class="card">
+        <h2>Sales by payment method</h2>
+        <table>
+            <thead><tr><th>Method</th><th class="num">Sales</th><th class="num">Total</th></tr></thead>
+            <tbody>
+                {% for p in payments %}
+                <tr>
+                    <td>{{ p.label }}</td>
+                    <td class="num">{{ p.count }}</td>
+                    <td class="num">GH₵ {{ p.total|floatformat:2 }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="card">
+        <h2>Sales by food category</h2>
+        {% if category_rows %}
+        <table>
+            <thead><tr><th>Category</th><th class="num">Total</th></tr></thead>
+            <tbody>
+                {% for name, total in category_rows %}
+                <tr><td>{{ name }}</td><td class="num">GH₵ {{ total|floatformat:2 }}</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+            <p>No completed sales.</p>
+        {% endif %}
+    </div>
+
+    <div class="card">
+        <h2>Best-selling items</h2>
+        {% if best_sellers %}
+        <table>
+            <thead><tr><th>Item</th><th class="num">Quantity sold</th><th class="num">Revenue</th></tr></thead>
+            <tbody>
+                {% for name, data in best_sellers %}
+                <tr>
+                    <td>{{ name }}</td>
+                    <td class="num">{{ data.qty }}</td>
+                    <td class="num">GH₵ {{ data.revenue|floatformat:2 }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+            <p>No completed sales.</p>
+        {% endif %}
+    </div>
+
+    <div class="card">
+        <h2>Voided sales</h2>
+        {% if voided %}
+        <table>
+            <thead>
+                <tr><th>#</th><th>Time</th><th>Cashier</th><th class="num">Amount</th><th>Reason</th><th>Voided by</th></tr>
+            </thead>
+            <tbody>
+                {% for sale in voided %}
+                <tr>
+                    <td>{{ sale.pk }}</td>
+                    <td>{{ sale.created_at|time:"H:i" }}</td>
+                    <td>{{ sale.cashier.username }}</td>
+                    <td class="num">GH₵ {{ sale.gross_total|floatformat:2 }}</td>
+                    <td>{{ sale.void_reason }}</td>
+                    <td>{{ sale.approved_by.username }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+            <p>No voided sales.</p>
+        {% endif %}
+    </div>
+
+    {% endif %}
+</div>
+{% endblock %}
