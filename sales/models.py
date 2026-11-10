@@ -68,3 +68,17 @@ class SaleLine(models.Model):
 
     def __str__(self):
         return f"{self.quantity} x {self.item.name}"
+ 
+
+class KitchenEntry(models.Model):
+    date = models.DateField()
+    item = models.ForeignKey(MenuItem, on_delete=models.PROTECT, related_name="kitchen_entries")
+    quantity_prepared = models.PositiveIntegerField()
+    recorded_by = models.ForeignKey(User, on_delete=models.PROTECT, related_name="kitchen_entries")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("date", "item")
+
+    def __str__(self):
+        return f"{self.date}: {self.quantity_prepared} x {self.item.name}"

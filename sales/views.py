@@ -15,7 +15,7 @@ from django.urls import reverse
 from django.utils.dateparse import parse_date
 from django.views.decorators.http import require_POST
 
-from .models import Category, MenuItem, Sale, SaleLine
+from .models import Category, KitchenEntry, MenuItem, Sale, SaleLine
 
 
 @login_required
@@ -84,20 +84,25 @@ def sales_entry(request):
 @login_required
 def home(request):
     groups = set(request.user.groups.values_list("name", flat=True))
-    is_manager = "Manager" in groups or request.user.is_superuser
-    is_owner = "Owner" in groups or request.user.is_superuser
+    manager = "Manager" in groups or request.user.is_superuser
+    owner = "Owner" in groups or request.user.is_superuser
+    kitchen = "Kitchen" in groups
 
-    # A cashier who is not also a manager or owner goes straight to the sales form
-    if "Cashier" in groups and not (is_manager or is_owner):
-        return redirect("sales_entry")
+    # Cashiers and kitchen staff go straight to their own page
+    if not (manager or owner):
+        if "Cashier" in groups:
+            return redirect("sales_entry")
+        if kitchen:
+            return redirect("kitchen_log")
 
     return render(request, "sales/home.html", {
-        "is_manager": is_manager,
-        "is_owner": is_owner,
+        "is_manager": manager,
+        "is_owner": owner,
+        "is_kitchen": kitchen or manager,
     })
 
 def is_manager(user):
-        return user.is_superuser or user.groups.filter(name="Manager").exists()
+    return user.is_superuser or user.groups.filter(name="Manager").exists()
 
 
 def manager_required(view):
@@ -148,7 +153,7 @@ def void_sale(request, pk):
     return redirect(f"{reverse('sales_list')}?date={sale.date.isoformat()}")
 
 def can_view_reports(user):
-     return user.is_superuser or user.groups.filter(name__in=["Manager", "Owner"]).exists()
+    return user.is_superuser or user.groups.filter(name__in=["Manager", "Owner"]).exists()
 
 
 def report_required(view):
@@ -290,3 +295,63 @@ def export_archive_csv(request):
             f"{r['cash']:.2f}", f"{r['momo']:.2f}", f"{r['card']:.2f}",
         ])
     return response
+
+def can_log_kitchen(user):
+    return user.is_superuser or user.groups.filter(name__in=["Kitchen", "Manager"]).exists()
+
+
+def kitchen_required(view):
+    @login_required
+    @wraps(view)
+    def wrapper(request, *args, **kwargs):
+        if not can_log_kitchen(request.user):
+            raise PermissionDenied
+        return view(request, *args, **kwargs)
+    return wrapper
+
+
+@kitchen_required
+def kitchen_log(request):
+    today = date.today()
+    items = (
+        MenuItem.objects.filter(is_active=True)
+        .select_related("category")
+        .order_by("category__name", "name")
+    )
+
+    if request.method == "POST":
+        saved = 0
+        with transaction.atomic():
+            for item in items:
+                raw = request.POST.get(f"qty_{item.id}", "").strip()
+                if raw == "":
+                    KitchenEntry.objects.filter(date=today, item=item).delete()
+                    continue
+                try:
+                    qty = int(raw)
+                except ValueError:
+                    continue
+                if qty < 0:
+                    continue
+                KitchenEntry.objects.update_or_create(
+                    date=today,
+                    item=item,
+                    defaults={"quantity_prepared": qty, "recorded_by": request.user},
+                )
+                saved += 1
+        messages.success(request, f"Saved {saved} item{'s' if saved != 1 else ''} for today.")
+        return redirect("kitchen_log")
+
+    existing = {e.item_id: e for e in KitchenEntry.objects.filter(date=today)}
+    groups = {}
+    for item in items:
+        entry = existing.get(item.id)
+        groups.setdefault(item.category.name, []).append({
+            "item": item,
+            "qty": entry.quantity_prepared if entry else "",
+        })
+
+    return render(request, "sales/kitchen_log.html", {
+        "today": today,
+        "groups": list(groups.items()),
+    })

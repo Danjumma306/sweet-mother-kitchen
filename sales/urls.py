@@ -8,4 +8,5 @@ urlpatterns = [
     path("report/", views.daily_report, name="daily_report"),
     path("archive/", views.report_archive, name="report_archive"),
     path("archive/export/", views.export_archive_csv, name="export_archive_csv"),
+    path("kitchen/", views.kitchen_log, name="kitchen_log"),
 ]
