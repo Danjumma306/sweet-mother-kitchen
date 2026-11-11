@@ -21,9 +21,16 @@
 <body>
 <nav class="topbar">
     <div class="brand">Sweet Mother's Kitchen</div>
-        <div class="links">
+    <div class="links">
         <a href="{% url 'home' %}">Home</a>
         <a href="{% url 'sales_entry' %}">New Sale</a>
+        {% if nav_closing %}<a href="{% url 'shop_closing' %}">Closing</a>{% endif %}
+        {% if nav_kitchen %}<a href="{% url 'kitchen_log' %}">Kitchen Log</a>{% endif %}
+        {% if nav_manager %}<a href="{% url 'sales_list' %}">Sales List</a>{% endif %}
+        {% if nav_reports %}
+            <a href="{% url 'daily_report' %}">Reports</a>
+            <a href="{% url 'report_archive' %}">Archive</a>
+        {% endif %}
     </div>
     <div class="user">
         <span>{{ user.username }}</span>

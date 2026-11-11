@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Category, KitchenEntry, MenuItem, Sale, SaleLine
+from .models import Category, CashCount, ClosingEntry, KitchenEntry, MenuItem, Sale, SaleLine
 
 
 class SaleLineInline(admin.TabularInline):
@@ -16,3 +16,5 @@ class SaleAdmin(admin.ModelAdmin):
 admin.site.register(Category)
 admin.site.register(MenuItem)
 admin.site.register(KitchenEntry)
+admin.site.register(ClosingEntry)
+admin.site.register(CashCount)

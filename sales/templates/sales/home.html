@@ -22,21 +22,28 @@
             <p>Record a sale with items, quantities and payment method.</p>
         </a>
 
-        {% if is_kitchen %}
+        {% if nav_closing %}
+        <a class="tile" href="{% url 'shop_closing' %}">
+            <h2>Shop Closing</h2>
+            <p>Record what is left over and the cash counted at closing.</p>
+        </a>
+        {% endif %}
+
+        {% if nav_kitchen %}
         <a class="tile" href="{% url 'kitchen_log' %}">
             <h2>Kitchen Log</h2>
             <p>Record what the kitchen prepared today.</p>
         </a>
         {% endif %}
 
-        {% if is_manager %}
+        {% if nav_manager %}
         <a class="tile" href="{% url 'sales_list' %}">
             <h2>Sales List</h2>
             <p>Review the day's sales and void mistakes.</p>
         </a>
         {% endif %}
 
-        {% if is_owner or is_manager %}
+        {% if nav_reports %}
         <a class="tile" href="{% url 'daily_report' %}">
             <h2>Daily Report</h2>
             <p>Gross and net sales, payment methods, categories and best sellers.</p>

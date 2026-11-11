@@ -1,21 +1,21 @@
 import csv
 from collections import defaultdict
 from datetime import date, timedelta
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from functools import wraps
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
-from django.db.models import Prefetch
+from django.db.models import Prefetch, Sum
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.dateparse import parse_date
 from django.views.decorators.http import require_POST
 
-from .models import Category, KitchenEntry, MenuItem, Sale, SaleLine
+from .models import CashCount, Category, ClosingEntry, KitchenEntry, MenuItem, Sale, SaleLine
 
 
 @login_required
@@ -354,4 +354,117 @@ def kitchen_log(request):
     return render(request, "sales/kitchen_log.html", {
         "today": today,
         "groups": list(groups.items()),
+    })
+
+def can_log_closing(user):
+    return user.is_superuser or user.groups.filter(name__in=["Cashier", "Manager"]).exists()
+
+
+def closing_required(view):
+    @login_required
+    @wraps(view)
+    def wrapper(request, *args, **kwargs):
+        if not can_log_closing(request.user):
+            raise PermissionDenied
+        return view(request, *args, **kwargs)
+    return wrapper
+
+
+@closing_required
+def shop_closing(request):
+    today = date.today()
+    items = (
+        MenuItem.objects.filter(is_active=True)
+        .select_related("category")
+        .order_by("category__name", "name")
+    )
+
+    if request.method == "POST":
+        cash_error = False
+        with transaction.atomic():
+            for item in items:
+                raw = request.POST.get(f"left_{item.id}", "").strip()
+                sold_out = f"soldout_{item.id}" in request.POST
+
+                if raw == "" and not sold_out:
+                    ClosingEntry.objects.filter(date=today, item=item).delete()
+                    continue
+                try:
+                    left = int(raw) if raw else 0
+                except ValueError:
+                    continue
+                if left < 0 or left > 100000:
+                    continue
+
+                ClosingEntry.objects.update_or_create(
+                    date=today,
+                    item=item,
+                    defaults={
+                        "quantity_left": left,
+                        "sold_out": sold_out,
+                        "recorded_by": request.user,
+                    },
+                )
+
+            raw_cash = request.POST.get("cash_counted", "").strip()
+            note = request.POST.get("note", "").strip()[:200]
+            if raw_cash == "":
+                CashCount.objects.filter(date=today).delete()
+            else:
+                try:
+                    cash = Decimal(raw_cash)
+                except InvalidOperation:
+                    cash = None
+                if cash is None or not cash.is_finite() or cash < 0 or cash >= Decimal("100000000"):
+                    cash_error = True
+                else:
+                    CashCount.objects.update_or_create(
+                        date=today,
+                        defaults={
+                            "cash_counted": cash.quantize(Decimal("0.01")),
+                            "note": note,
+                            "recorded_by": request.user,
+                        },
+                    )
+
+        if cash_error:
+            messages.error(request, "Items were saved, but the cash counted is not a valid amount.")
+        else:
+            messages.success(request, "Closing report saved.")
+        return redirect("shop_closing")
+
+    sold = {
+        row["item_id"]: row["total"]
+        for row in SaleLine.objects.filter(
+            sale__date=today, sale__status=Sale.Status.COMPLETED
+        ).values("item_id").annotate(total=Sum("quantity"))
+    }
+    existing = {e.item_id: e for e in ClosingEntry.objects.filter(date=today)}
+
+    groups = {}
+    for item in items:
+        entry = existing.get(item.id)
+        groups.setdefault(item.category.name, []).append({
+            "item": item,
+            "sold": sold.get(item.id, 0),
+            "left": entry.quantity_left if entry else "",
+            "sold_out": entry.sold_out if entry else False,
+        })
+
+    cash_sales = Sale.objects.filter(
+        date=today,
+        status=Sale.Status.COMPLETED,
+        payment_method=Sale.PaymentMethod.CASH,
+    ).prefetch_related("lines")
+    expected_cash = sum((s.gross_total for s in cash_sales), Decimal("0"))
+
+    cash_count = CashCount.objects.filter(date=today).first()
+    difference = (cash_count.cash_counted - expected_cash) if cash_count else None
+
+    return render(request, "sales/shop_closing.html", {
+        "today": today,
+        "groups": list(groups.items()),
+        "expected_cash": expected_cash,
+        "cash_count": cash_count,
+        "difference": difference,
     })
