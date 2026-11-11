@@ -82,3 +82,28 @@ class KitchenEntry(models.Model):
 
     def __str__(self):
         return f"{self.date}: {self.quantity_prepared} x {self.item.name}"
+
+class ClosingEntry(models.Model):
+    date = models.DateField()
+    item = models.ForeignKey(MenuItem, on_delete=models.PROTECT, related_name="closing_entries")
+    quantity_left = models.PositiveIntegerField(default=0)
+    sold_out = models.BooleanField(default=False)
+    recorded_by = models.ForeignKey(User, on_delete=models.PROTECT, related_name="closing_entries")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("date", "item")
+
+    def __str__(self):
+        return f"{self.date}: {self.quantity_left} left of {self.item.name}"
+
+
+class CashCount(models.Model):
+    date = models.DateField(unique=True)
+    cash_counted = models.DecimalField(max_digits=10, decimal_places=2)
+    note = models.CharField(max_length=200, blank=True)
+    recorded_by = models.ForeignKey(User, on_delete=models.PROTECT, related_name="cash_counts")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.date}: GH₵ {self.cash_counted}"
