@@ -1,50 +1,178 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{% block title %}Sweet Mother's Kitchen{% endblock %}</title>
-    <style>
-        * { box-sizing: border-box; }
-        body { font-family: Arial, sans-serif; background: #f5f5f5; margin: 0; }
-        .topbar { background: #2e7d32; color: #fff; display: flex; align-items: center; justify-content: space-between; padding: 10px 20px; flex-wrap: wrap; gap: 10px; }
-        .brand { font-weight: bold; font-size: 18px; }
-        .links a { color: #fff; text-decoration: none; margin-right: 18px; font-size: 15px; }
-        .links a:hover { text-decoration: underline; }
-        .user { display: flex; align-items: center; gap: 12px; font-size: 14px; }
-        .user form { margin: 0; }
-        .user button { padding: 6px 12px; font-size: 14px; background: #fff; color: #2e7d32; border: 0; border-radius: 4px; cursor: pointer; }
-        .container { padding: 20px; }
-    </style>
+    <title>{% block title %}{{ brand_name }}{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'sales/css/app.css' %}">
     {% block extra_css %}{% endblock %}
 </head>
 <body>
-<nav class="topbar">
-    <div class="brand">Sweet Mother's Kitchen</div>
-    <div class="links">
-        <a href="{% url 'home' %}">Home</a>
-        <a href="{% url 'sales_entry' %}">New Sale</a>
-        {% if nav_closing %}<a href="{% url 'shop_closing' %}">Closing</a>{% endif %}
-        {% if nav_kitchen %}<a href="{% url 'kitchen_log' %}">Kitchen Log</a>{% endif %}
-        {% if nav_manager %}<a href="{% url 'sales_list' %}">Sales List</a>{% endif %}
-        {% if nav_reports %}
-            <a href="{% url 'daily_report' %}">Reports</a>
-            <a href="{% url 'report_archive' %}">Archive</a>
-        {% endif %}
+{% include "sales/partials/icons.html" %}
+
+<div class="app-shell">
+    <aside class="sidebar" id="sidebar" aria-label="Main navigation">
+        <div class="sidebar-top">
+            <div class="brand-mark" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><use href="#icon-cloche"/></svg>
+            </div>
+            <button type="button" class="collapse-btn" id="sidebar-toggle" aria-label="Collapse sidebar">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="15 18 9 12 15 6" id="collapse-chevron"/>
+                </svg>
+            </button>
+        </div>
+        <div class="brand-text">
+            <p class="name">{{ brand_name }}</p>
+            <p class="place">{{ brand_location }}</p>
+        </div>
+
+        <nav class="sidebar-nav">
+            <a class="nav-link {% if active_nav == nav_item.OVERVIEW %}is-active{% endif %}" href="{% url 'home' %}">
+                <svg viewBox="0 0 24 24"><use href="#icon-home"/></svg>
+                <span class="nav-label">Overview</span>
+            </a>
+            <a class="nav-link {% if active_nav == nav_item.NEW_SALE %}is-active{% endif %}" href="{% url 'sales_entry' %}">
+                <svg viewBox="0 0 24 24"><use href="#icon-cart"/></svg>
+                <span class="nav-label">New Sale</span>
+            </a>
+            {% if nav_manager %}
+            <a class="nav-link {% if active_nav == nav_item.SALES_LIST %}is-active{% endif %}" href="{% url 'sales_list' %}">
+                <svg viewBox="0 0 24 24"><use href="#icon-list"/></svg>
+                <span class="nav-label">Sales List</span>
+            </a>
+            {% endif %}
+            {% if nav_kitchen %}
+            <a class="nav-link {% if active_nav == nav_item.KITCHEN_LOG %}is-active{% endif %}" href="{% url 'kitchen_log' %}">
+                <svg viewBox="0 0 24 24"><use href="#icon-chef"/></svg>
+                <span class="nav-label">Kitchen Log</span>
+            </a>
+            {% endif %}
+            {% if nav_closing %}
+            <a class="nav-link {% if active_nav == nav_item.SHOP_CLOSING %}is-active{% endif %}" href="{% url 'shop_closing' %}">
+                <svg viewBox="0 0 24 24"><use href="#icon-calendar"/></svg>
+                <span class="nav-label">Shop Closing</span>
+            </a>
+            {% endif %}
+            {% if nav_reports %}
+            <a class="nav-link {% if active_nav == nav_item.DAILY_REPORT %}is-active{% endif %}" href="{% url 'daily_report' %}">
+                <svg viewBox="0 0 24 24"><use href="#icon-chart"/></svg>
+                <span class="nav-label">Daily Report</span>
+            </a>
+            <a class="nav-link {% if active_nav == nav_item.REPORT_ARCHIVE %}is-active{% endif %}" href="{% url 'report_archive' %}">
+                <svg viewBox="0 0 24 24"><use href="#icon-archive"/></svg>
+                <span class="nav-label">Report Archive</span>
+            </a>
+            {% endif %}
+        </nav>
+
+        <div class="sidebar-foot">
+            <div class="foot-link" aria-label="Signed in user">
+                <svg viewBox="0 0 24 24"><use href="#icon-user"/></svg>
+                <span class="foot-label">{{ display_name }}</span>
+            </div>
+            <form method="post" action="{% url 'logout' %}">
+                {% csrf_token %}
+                <button type="submit" class="foot-link logout-btn">
+                    <svg viewBox="0 0 24 24"><use href="#icon-logout"/></svg>
+                    <span class="foot-label">Log out</span>
+                </button>
+            </form>
+        </div>
+    </aside>
+
+    <div class="main-area">
+        <header class="mobile-top">
+            <div class="mobile-brand">
+                <div class="brand-mark" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><use href="#icon-cloche"/></svg>
+                </div>
+                <div>
+                    <p class="name">{{ brand_name }}</p>
+                    <p class="place">{{ brand_location }}</p>
+                </div>
+            </div>
+        </header>
+
+        <main class="content-wrap">
+            {% block content %}{% endblock %}
+        </main>
     </div>
-    <div class="user">
-        <span>{{ user.username }}</span>
-        <form method="post" action="{% url 'logout' %}">
-            {% csrf_token %}
-            <button type="submit">Log out</button>
-        </form>
-    </div>
+</div>
+
+<nav class="mobile-nav" aria-label="Mobile navigation">
+    <a class="{% if active_nav == nav_item.OVERVIEW %}is-active{% endif %}" href="{% url 'home' %}">
+        <svg viewBox="0 0 24 24"><use href="#icon-home"/></svg>
+        Overview
+    </a>
+    <a class="{% if active_nav == nav_item.NEW_SALE %}is-active{% endif %}" href="{% url 'sales_entry' %}">
+        <svg viewBox="0 0 24 24"><use href="#icon-cart"/></svg>
+        New Sale
+    </a>
+    {% if nav_reports %}
+    <a class="{% if active_nav == nav_item.DAILY_REPORT or active_nav == nav_item.REPORT_ARCHIVE %}is-active{% endif %}" href="{% url 'daily_report' %}">
+        <svg viewBox="0 0 24 24"><use href="#icon-chart"/></svg>
+        Reports
+    </a>
+    {% endif %}
+    {% if nav_closing %}
+    <a class="{% if active_nav == nav_item.SHOP_CLOSING %}is-active{% endif %}" href="{% url 'shop_closing' %}">
+        <svg viewBox="0 0 24 24"><use href="#icon-coins"/></svg>
+        Stock
+    </a>
+    {% elif nav_kitchen %}
+    <a class="{% if active_nav == nav_item.KITCHEN_LOG %}is-active{% endif %}" href="{% url 'kitchen_log' %}">
+        <svg viewBox="0 0 24 24"><use href="#icon-chef"/></svg>
+        Kitchen
+    </a>
+    {% endif %}
+    <form method="post" action="{% url 'logout' %}" id="mobile-logout-form" style="flex:1;margin:0;display:flex;">
+        {% csrf_token %}
+        <button type="button" id="mobile-account-btn" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border:0;background:none;font:inherit;color:var(--color-muted);font-size:0.68rem;font-weight:500;border-radius:10px;padding:6px 4px;cursor:pointer;">
+            <svg viewBox="0 0 24 24" width="22" height="22"><use href="#icon-user"/></svg>
+            Account
+        </button>
+    </form>
 </nav>
 
-<main class="container">
-    {% block content %}{% endblock %}
-</main>
+<script>
+(function () {
+    const sidebar_el = document.getElementById("sidebar");
+    const toggle_btn = document.getElementById("sidebar-toggle");
+    const storage_key = "smk_sidebar_collapsed";
+    const collapsed_value = "1";
 
+    function apply_sidebar_state(is_collapsed) {
+        sidebar_el.classList.toggle("is-collapsed", is_collapsed);
+        const chevron = document.getElementById("collapse-chevron");
+        if (chevron) {
+            chevron.setAttribute("points", is_collapsed ? "9 18 15 12 9 6" : "15 18 9 12 15 6");
+        }
+        toggle_btn.setAttribute("aria-label", is_collapsed ? "Expand sidebar" : "Collapse sidebar");
+    }
+
+    apply_sidebar_state(localStorage.getItem(storage_key) === collapsed_value);
+
+    toggle_btn.addEventListener("click", function () {
+        const next_collapsed = !sidebar_el.classList.contains("is-collapsed");
+        apply_sidebar_state(next_collapsed);
+        localStorage.setItem(storage_key, next_collapsed ? collapsed_value : "0");
+    });
+
+    const mobile_account_btn = document.getElementById("mobile-account-btn");
+    const mobile_logout_form = document.getElementById("mobile-logout-form");
+    if (mobile_account_btn && mobile_logout_form) {
+        mobile_account_btn.addEventListener("click", function () {
+            const display_name = "{{ display_name|escapejs }}";
+            const confirmed = window.confirm("Signed in as " + display_name + ".\n\nLog out now?");
+            if (confirmed) {
+                mobile_logout_form.submit();
+            }
+        });
+    }
+})();
+</script>
 {% block scripts %}{% endblock %}
 </body>
 </html>
