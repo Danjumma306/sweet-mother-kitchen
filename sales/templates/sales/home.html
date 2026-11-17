@@ -1,59 +1,244 @@
 {% extends "sales/base.html" %}
+{% load static %}
 
-{% block title %}Home - Sweet Mother's Kitchen{% endblock %}
+{% block title %}Overview - {{ brand_name }}{% endblock %}
 
 {% block extra_css %}
-<style>
-    .wrap { max-width: 760px; margin: 0 auto; }
-    h1 { font-size: 22px; margin-top: 0; }
-    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 16px; }
-    .tile { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,.15); text-decoration: none; color: #222; display: block; }
-    .tile h2 { margin: 0 0 6px; font-size: 18px; }
-    .tile p { margin: 0; color: #666; font-size: 14px; }
-</style>
+<link rel="stylesheet" href="{% static 'sales/css/home.css' %}">
 {% endblock %}
 
 {% block content %}
-<div class="wrap">
-    <h1>Welcome, {{ user.username }}</h1>
-    <div class="grid">
-        <a class="tile" href="{% url 'sales_entry' %}">
-            <h2>New Sale</h2>
-            <p>Record a sale with items, quantities and payment method.</p>
-        </a>
-
-        {% if nav_closing %}
-        <a class="tile" href="{% url 'shop_closing' %}">
-            <h2>Shop Closing</h2>
-            <p>Record what is left over and the cash counted at closing.</p>
-        </a>
-        {% endif %}
-
-        {% if nav_kitchen %}
-        <a class="tile" href="{% url 'kitchen_log' %}">
-            <h2>Kitchen Log</h2>
-            <p>Record what the kitchen prepared today.</p>
-        </a>
-        {% endif %}
-
-        {% if nav_manager %}
-        <a class="tile" href="{% url 'sales_list' %}">
-            <h2>Sales List</h2>
-            <p>Review the day's sales and void mistakes.</p>
-        </a>
-        {% endif %}
-
-        {% if nav_reports %}
-        <a class="tile" href="{% url 'daily_report' %}">
-            <h2>Daily Report</h2>
-            <p>Gross and net sales, payment methods, categories and best sellers.</p>
-        </a>
-
-        <a class="tile" href="{% url 'report_archive' %}">
-            <h2>Report Archive</h2>
-            <p>Search past days and export them as CSV.</p>
-        </a>
-        {% endif %}
+<header class="page-head">
+    <div>
+        <h1>Welcome, {{ display_name }}</h1>
+        <p class="sub">{{ today|date:"l, j F Y" }}</p>
     </div>
+    <a class="btn-primary" href="{% url 'sales_entry' %}">
+        <svg width="18" height="18" viewBox="0 0 24 24"><use href="#icon-plus"/></svg>
+        New Sale
+    </a>
+</header>
+
+<section class="card" style="margin-bottom:18px">
+    <div class="card-title">
+        <span>Today at a glance</span>
+        {% if not has_sales_today %}<span class="sample-tag">No sales yet today</span>{% endif %}
+    </div>
+    <div class="glance">
+        <div class="glance-metric">
+            <p class="label">Net sales</p>
+            <p class="value">GH₵ {{ net_sales|floatformat:2 }}</p>
+        </div>
+        <div class="glance-metric">
+            <p class="label">Sales recorded</p>
+            <p class="value">{{ sales_recorded }}</p>
+        </div>
+        <div class="glance-metric">
+            <p class="label">Cash collected</p>
+            <p class="value">GH₵ {{ cash_collected|floatformat:2 }}</p>
+        </div>
+    </div>
+</section>
+
+<div class="dash-row">
+    <section class="card">
+        <h2 class="card-title">Net sales over time</h2>
+        {{ hourly_sales|json_script:"hourly-sales-data" }}
+        <div class="chart-wrap" id="sales-chart"></div>
+    </section>
+
+    <section class="card">
+        <h2 class="card-title">Payment breakdown</h2>
+        <div class="donut-layout">
+            <svg class="donut-svg" viewBox="0 0 120 120" aria-hidden="true">
+                <circle cx="60" cy="60" r="40" fill="none" stroke="#e8f3e8" stroke-width="16"/>
+                <circle id="donut-cash" cx="60" cy="60" r="40" fill="none" stroke="#14452f" stroke-width="16"
+                        stroke-dasharray="0 251.2" transform="rotate(-90 60 60)"/>
+                <circle id="donut-momo" cx="60" cy="60" r="40" fill="none" stroke="#8fb58a" stroke-width="16"
+                        stroke-dasharray="0 251.2" transform="rotate(-90 60 60)"/>
+                <circle id="donut-card" cx="60" cy="60" r="40" fill="none" stroke="#c5d9bf" stroke-width="16"
+                        stroke-dasharray="0 251.2" transform="rotate(-90 60 60)"/>
+                <text x="60" y="58" text-anchor="middle" font-size="11" font-weight="700" fill="#14452f">GH₵</text>
+                <text id="donut-center" x="60" y="72" text-anchor="middle" font-size="11" font-weight="700" fill="#14452f">0</text>
+            </svg>
+            <div class="donut-legend"
+                 data-cash="{{ cash_collected }}"
+                 data-momo="{{ momo_collected }}"
+                 data-card="{{ card_collected }}"
+                 data-total="{{ payment_total }}">
+                <div class="legend-row">
+                    <div class="legend-left"><span class="swatch cash"></span> Cash</div>
+                    <strong>GH₵ {{ cash_collected|floatformat:0 }}</strong>
+                </div>
+                <div class="legend-row">
+                    <div class="legend-left"><span class="swatch momo"></span> Mobile Money</div>
+                    <strong>GH₵ {{ momo_collected|floatformat:0 }}</strong>
+                </div>
+                <div class="legend-row">
+                    <div class="legend-left"><span class="swatch card"></span> Card</div>
+                    <strong>GH₵ {{ card_collected|floatformat:0 }}</strong>
+                </div>
+            </div>
+        </div>
+    </section>
 </div>
+
+<div class="dash-row">
+    <section class="card">
+        <div class="card-title">
+            <span>Recent sales</span>
+            {% if nav_manager %}
+            <a class="link-arrow" href="{% url 'sales_list' %}">View sales list →</a>
+            {% endif %}
+        </div>
+        {% if recent_sales %}
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Sale</th>
+                    <th>Time</th>
+                    <th>Payment</th>
+                    <th class="num">Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for sale in recent_sales %}
+                <tr>
+                    <td>#{{ sale.pk }}</td>
+                    <td>{{ sale.created_at|time:"g:i A" }}</td>
+                    <td>{{ sale.get_payment_method_display }}</td>
+                    <td class="num">GH₵ {{ sale.gross_total|floatformat:2 }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="muted">No sales recorded yet today.</p>
+        {% endif %}
+    </section>
+
+    <section class="card">
+        <h2 class="card-title">Daily operations</h2>
+        <div class="ops-list">
+            {% if is_kitchen or nav_kitchen %}
+            <a class="op-card" href="{% url 'kitchen_log' %}">
+                <div class="op-icon"><svg viewBox="0 0 24 24"><use href="#icon-chef"/></svg></div>
+                <div class="op-body">
+                    <strong>Kitchen Log</strong>
+                    <span>Record food prepared today.</span>
+                </div>
+                <span class="op-arrow">→</span>
+            </a>
+            {% endif %}
+            {% if nav_closing %}
+            <a class="op-card" href="{% url 'shop_closing' %}">
+                <div class="op-icon"><svg viewBox="0 0 24 24"><use href="#icon-coins"/></svg></div>
+                <div class="op-body">
+                    <strong>Shop Closing {% if closing_pending %}<span class="badge pending">Pending</span>{% endif %}</strong>
+                    <span>Record leftovers and count cash.</span>
+                </div>
+                <span class="op-arrow">→</span>
+            </a>
+            {% endif %}
+        </div>
+    </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+    const chart_host = document.getElementById("sales-chart");
+    let points = [];
+    const points_el = document.getElementById("hourly-sales-data");
+    try {
+        points = points_el ? JSON.parse(points_el.textContent) : [];
+    } catch (err) {
+        points = [];
+    }
+
+    const width = 560;
+    const height = 220;
+    const pad_left = 48;
+    const pad_right = 16;
+    const pad_top = 16;
+    const pad_bottom = 32;
+    const plot_w = width - pad_left - pad_right;
+    const plot_h = height - pad_top - pad_bottom;
+    const max_val = Math.max(100, ...points.map(function (p) { return p.total; }));
+    const step = plot_w / Math.max(points.length - 1, 1);
+
+    function x_at(index) { return pad_left + index * step; }
+    function y_at(value) { return pad_top + plot_h - (value / max_val) * plot_h; }
+
+    const coords = points.map(function (point, index) {
+        return { x: x_at(index), y: y_at(point.total), label: point.hour, total: point.total };
+    });
+
+    let line_d = "";
+    let area_d = "";
+    coords.forEach(function (c, index) {
+        line_d += (index === 0 ? "M" : "L") + c.x.toFixed(1) + " " + c.y.toFixed(1) + " ";
+    });
+    if (coords.length) {
+        area_d = line_d
+            + "L" + coords[coords.length - 1].x.toFixed(1) + " " + (pad_top + plot_h)
+            + " L" + coords[0].x.toFixed(1) + " " + (pad_top + plot_h) + " Z";
+    }
+
+    const y_ticks = [0, 0.33, 0.66, 1].map(function (ratio) {
+        const value = Math.round(max_val * ratio);
+        const y = y_at(value);
+        return '<text x="' + (pad_left - 8) + '" y="' + (y + 4) + '" text-anchor="end" font-size="10" fill="#6b7c72">GH₵ '
+            + value + '</text>'
+            + '<line x1="' + pad_left + '" y1="' + y + '" x2="' + (width - pad_right) + '" y2="' + y
+            + '" stroke="#e3ebe4" stroke-width="1"/>';
+    }).join("");
+
+    const x_labels = coords.filter(function (_, index) {
+        return index % 2 === 0 || index === coords.length - 1;
+    }).map(function (c) {
+        const hour = c.label % 12 || 12;
+        const suffix = c.label >= 12 ? "PM" : "AM";
+        return '<text x="' + c.x + '" y="' + (height - 8) + '" text-anchor="middle" font-size="10" fill="#6b7c72">'
+            + hour + " " + suffix + '</text>';
+    }).join("");
+
+    const dots = coords.map(function (c) {
+        return '<circle cx="' + c.x + '" cy="' + c.y + '" r="3.5" fill="#14452f" stroke="#fff" stroke-width="2"/>';
+    }).join("");
+
+    chart_host.innerHTML =
+        '<svg viewBox="0 0 ' + width + ' ' + height + '" role="img" aria-label="Net sales over time">'
+        + '<defs><linearGradient id="salesFill" x1="0" y1="0" x2="0" y2="1">'
+        + '<stop offset="0%" stop-color="#14452f" stop-opacity="0.22"/>'
+        + '<stop offset="100%" stop-color="#14452f" stop-opacity="0"/>'
+        + '</linearGradient></defs>'
+        + y_ticks + x_labels
+        + '<path d="' + area_d + '" fill="url(#salesFill)"/>'
+        + '<path d="' + line_d + '" fill="none" stroke="#14452f" stroke-width="2.5" stroke-linejoin="round"/>'
+        + dots + '</svg>';
+
+    const legend = document.querySelector(".donut-legend");
+    const cash = parseFloat(legend.dataset.cash || "0");
+    const momo = parseFloat(legend.dataset.momo || "0");
+    const card = parseFloat(legend.dataset.card || "0");
+    const total = cash + momo + card;
+    const circumference = 2 * Math.PI * 40;
+    const cash_len = total ? (cash / total) * circumference : 0;
+    const momo_len = total ? (momo / total) * circumference : 0;
+    const card_len = total ? (card / total) * circumference : 0;
+
+    const cash_circle = document.getElementById("donut-cash");
+    const momo_circle = document.getElementById("donut-momo");
+    const card_circle = document.getElementById("donut-card");
+    cash_circle.setAttribute("stroke-dasharray", cash_len + " " + circumference);
+    cash_circle.setAttribute("stroke-dashoffset", "0");
+    momo_circle.setAttribute("stroke-dasharray", momo_len + " " + circumference);
+    momo_circle.setAttribute("stroke-dashoffset", String(-cash_len));
+    card_circle.setAttribute("stroke-dasharray", card_len + " " + circumference);
+    card_circle.setAttribute("stroke-dashoffset", String(-(cash_len + momo_len)));
+    document.getElementById("donut-center").textContent = total ? total.toFixed(0) : "0";
+})();
+</script>
 {% endblock %}

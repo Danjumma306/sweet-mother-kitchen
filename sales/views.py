@@ -15,6 +15,7 @@ from django.urls import reverse
 from django.utils.dateparse import parse_date
 from django.views.decorators.http import require_POST
 
+from .constants import CategoryFilter, PaymentUi
 from .models import CashCount, Category, ClosingEntry, KitchenEntry, MenuItem, Sale, SaleLine
 
 
@@ -78,7 +79,24 @@ def sales_entry(request):
     return render(request, "sales/sales_entry.html", {
         "categories": categories,
         "payment_methods": Sale.PaymentMethod.choices,
+        "payment_ui": PaymentUi,
+        "category_filter_all": CategoryFilter.ALL,
+        "default_payment": Sale.PaymentMethod.CASH,
     })
+
+
+def _dashboard_hourly_sales(completed_sales):
+    """Build hourly net totals for today's completed sales (chart points)."""
+    hourly = {hour: Decimal("0") for hour in range(9, 22)}
+    for sale in completed_sales:
+        hour = sale.created_at.hour
+        if hour in hourly:
+            hourly[hour] += sale.gross_total
+        elif hour < 9:
+            hourly[9] += sale.gross_total
+        else:
+            hourly[21] += sale.gross_total
+    return [{"hour": hour, "total": float(total)} for hour, total in sorted(hourly.items())]
 
 
 @login_required
@@ -95,10 +113,48 @@ def home(request):
         if kitchen:
             return redirect("kitchen_log")
 
+    today = date.today()
+    today_sales = list(
+        Sale.objects.filter(date=today)
+        .select_related("cashier")
+        .prefetch_related("lines")
+        .order_by("-created_at")
+    )
+    completed = [sale for sale in today_sales if sale.status == Sale.Status.COMPLETED]
+    net_sales = sum((sale.gross_total for sale in completed), Decimal("0"))
+    cash_collected = sum(
+        (sale.gross_total for sale in completed if sale.payment_method == Sale.PaymentMethod.CASH),
+        Decimal("0"),
+    )
+    momo_collected = sum(
+        (sale.gross_total for sale in completed if sale.payment_method == Sale.PaymentMethod.MOMO),
+        Decimal("0"),
+    )
+    card_collected = sum(
+        (sale.gross_total for sale in completed if sale.payment_method == Sale.PaymentMethod.CARD),
+        Decimal("0"),
+    )
+    payment_total = cash_collected + momo_collected + card_collected
+    closing_done = CashCount.objects.filter(date=today).exists()
+
     return render(request, "sales/home.html", {
         "is_manager": manager,
         "is_owner": owner,
         "is_kitchen": kitchen or manager,
+        "today": today,
+        "net_sales": net_sales,
+        "sales_recorded": len(completed),
+        "cash_collected": cash_collected,
+        "momo_collected": momo_collected,
+        "card_collected": card_collected,
+        "payment_total": payment_total,
+        "cash_pct": float((cash_collected / payment_total * 100) if payment_total else 0),
+        "momo_pct": float((momo_collected / payment_total * 100) if payment_total else 0),
+        "card_pct": float((card_collected / payment_total * 100) if payment_total else 0),
+        "hourly_sales": _dashboard_hourly_sales(completed),
+        "recent_sales": completed[:5],
+        "closing_pending": not closing_done,
+        "has_sales_today": bool(completed),
     })
 
 def is_manager(user):

@@ -1,136 +1,93 @@
 {% extends "sales/base.html" %}
+{% load static %}
 
-{% block title %}New Sale - Sweet Mother's Kitchen{% endblock %}
+{% block title %}New Sale - {{ brand_name }}{% endblock %}
 
 {% block extra_css %}
-<style>
-    .card { max-width: 760px; margin: 0 auto; background: #fff; padding: 24px; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,.15); }
-    h1 { margin-top: 0; font-size: 22px; }
-    .msg { padding: 10px 14px; border-radius: 6px; margin-bottom: 12px; }
-    .msg.success { background: #d4edda; color: #155724; }
-    .msg.error { background: #f8d7da; color: #721c24; }
-    table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
-    th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid #eee; }
-    th { font-size: 13px; color: #555; }
-    select, input[type=number] { width: 100%; padding: 8px; font-size: 15px; border: 1px solid #ccc; border-radius: 4px; }
-    .num { text-align: right; white-space: nowrap; }
-    .card button { padding: 10px 16px; font-size: 15px; border: 0; border-radius: 4px; cursor: pointer; }
-    .add { background: #e7e7e7; }
-    .remove { background: #f8d7da; color: #721c24; padding: 6px 10px; }
-    .save { background: #2e7d32; color: #fff; width: 100%; margin-top: 14px; font-size: 17px; }
-    .pay { margin: 16px 0 8px; }
-    .pay label { margin-right: 16px; font-size: 15px; }
-    .grand { text-align: right; font-size: 20px; font-weight: bold; margin-top: 8px; }
-</style>
+<link rel="stylesheet" href="{% static 'sales/css/sales_entry.css' %}">
 {% endblock %}
 
 {% block content %}
-<div class="card">
-    <h1>New Sale</h1>
+{% for message in messages %}
+    <div class="msg {{ message.tags }}">{{ message }}</div>
+{% endfor %}
 
-    {% for message in messages %}
-        <div class="msg {{ message.tags }}">{{ message }}</div>
-    {% endfor %}
+<form method="post" id="sale-form" class="pos-layout">
+    {% csrf_token %}
+    <input type="hidden" name="payment_method" id="payment_method_input" value="{{ default_payment }}">
 
-    <form method="post" id="sale-form">
-        {% csrf_token %}
+    <section class="pos-menu">
+        <div class="search-wrap">
+            <svg viewBox="0 0 24 24"><use href="#icon-search"/></svg>
+            <input type="search" id="menu-search" placeholder="Search menu items." autocomplete="off">
+        </div>
 
-        <table>
-            <thead>
-                <tr>
-                    <th style="width:42%">Item</th>
-                    <th style="width:16%">Qty</th>
-                    <th class="num">Unit price</th>
-                    <th class="num">Line total</th>
-                    <th></th>
-                </tr>
-            </thead>
-            <tbody id="lines"></tbody>
-        </table>
-
-        <button type="button" class="add" id="add-line">+ Add item</button>
-
-        <div class="pay">
-            <strong>Payment method:</strong><br>
-            {% for value, label in payment_methods %}
-                <label>
-                    <input type="radio" name="payment_method" value="{{ value }}"
-                           {% if forloop.first %}checked{% endif %}> {{ label }}
-                </label>
+        <div class="cat-tabs" id="cat-tabs" role="tablist" data-category-all="{{ category_filter_all }}">
+            <button type="button" class="cat-tab is-active" data-category="{{ category_filter_all }}">All items</button>
+            {% for category in categories %}
+                {% if category.active_items %}
+                <button type="button" class="cat-tab" data-category="{{ category.name|lower }}">{{ category.name }}</button>
+                {% endif %}
             {% endfor %}
         </div>
 
-        <div class="grand">Total: GH₵ <span id="grand-total">0.00</span></div>
-
-        <button type="submit" class="save">Save sale</button>
-    </form>
-</div>
-
-<!-- One blank row. JavaScript copies this each time you click "Add item". -->
-<template id="line-template">
-    <tr class="line">
-        <td>
-            <select name="item" class="item-select">
-                <option value="">Select an item...</option>
-                {% for category in categories %}
-                    {% if category.active_items %}
-                        <optgroup label="{{ category.name }}">
-                            {% for item in category.active_items %}
-                                <option value="{{ item.id }}" data-price="{{ item.price|stringformat:'f' }}">
-                                    {{ item.name }} ({{ item.unit }})
-                                </option>
-                            {% endfor %}
-                        </optgroup>
-                    {% endif %}
+        <div class="item-grid" id="item-grid">
+            {% for category in categories %}
+                {% for item in category.active_items %}
+                <article class="menu-card"
+                         data-item-id="{{ item.id }}"
+                         data-item-name="{{ item.name }}"
+                         data-item-price="{{ item.price|stringformat:'f' }}"
+                         data-category="{{ category.name|lower }}"
+                         style="--art-a: {% cycle '#d7e8cf' '#cfe0f0' '#f0e2cf' '#e4d4ef' '#d4ebe7' '#f0d4d4' %}; --art-b: {% cycle '#f2f7ef' '#eef4fa' '#faf4ef' '#f7f0fa' '#eef8f5' '#faf0f0' %};">
+                    <div class="menu-card-art"><span>{{ item.name|slice:":1" }}</span></div>
+                    <div class="menu-card-body">
+                        <h3>{{ item.name }}</h3>
+                        <div class="menu-card-meta">
+                            <span class="price">GH₵ {{ item.price|floatformat:2 }}</span>
+                            <button type="button" class="item-add" aria-label="Add {{ item.name }}">
+                                <svg viewBox="0 0 24 24"><use href="#icon-plus"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                </article>
                 {% endfor %}
-            </select>
-        </td>
-        <td><input type="number" name="quantity" class="qty" min="1" value="1"></td>
-        <td class="num">GH₵ <span class="unit-price">0.00</span></td>
-        <td class="num">GH₵ <span class="line-total">0.00</span></td>
-        <td><button type="button" class="remove">X</button></td>
-    </tr>
-</template>
+            {% endfor %}
+        </div>
+    </section>
+
+    <aside class="pos-order">
+        <h2>Current order</h2>
+        <div class="order-lines" id="order-lines">
+            <p class="order-empty" id="order-empty">Tap menu items to build this order.</p>
+        </div>
+
+        <div class="order-total">
+            <span>Total</span>
+            <strong>GH₵ <span id="grand-total">0.00</span></strong>
+        </div>
+
+        <div class="pay-grid" id="pay-grid" role="radiogroup" aria-label="Payment method">
+            {% for value, label in payment_methods %}
+            <button type="button" class="pay-option {% if value == default_payment %}is-selected{% endif %}" data-method="{{ value }}">
+                {% if value == payment_ui.CASH %}
+                    <svg viewBox="0 0 24 24"><use href="#icon-cash"/></svg>
+                {% elif value == payment_ui.MOMO %}
+                    <svg viewBox="0 0 24 24"><use href="#icon-phone"/></svg>
+                {% else %}
+                    <svg viewBox="0 0 24 24"><use href="#icon-card"/></svg>
+                {% endif %}
+                {{ label }}
+            </button>
+            {% endfor %}
+        </div>
+
+        <div id="order-fields"></div>
+        <button type="submit" class="btn-primary" id="save-sale" disabled>Save sale</button>
+    </aside>
+</form>
 {% endblock %}
 
 {% block scripts %}
-<script>
-    const lines = document.getElementById("lines");
-    const template = document.getElementById("line-template");
-    const grandTotal = document.getElementById("grand-total");
-
-    function recalculate() {
-        let total = 0;
-        lines.querySelectorAll(".line").forEach(row => {
-            const select = row.querySelector(".item-select");
-            const option = select.options[select.selectedIndex];
-            const price = parseFloat(option.dataset.price || "0");
-            const qty = parseInt(row.querySelector(".qty").value, 10) || 0;
-            const lineTotal = price * qty;
-
-            row.querySelector(".unit-price").textContent = price.toFixed(2);
-            row.querySelector(".line-total").textContent = lineTotal.toFixed(2);
-            total += lineTotal;
-        });
-        grandTotal.textContent = total.toFixed(2);
-    }
-
-    function addLine() {
-        lines.appendChild(template.content.cloneNode(true));
-        recalculate();
-    }
-
-    document.getElementById("add-line").addEventListener("click", addLine);
-
-    lines.addEventListener("input", recalculate);
-    lines.addEventListener("change", recalculate);
-    lines.addEventListener("click", event => {
-        if (event.target.classList.contains("remove")) {
-            event.target.closest(".line").remove();
-            recalculate();
-        }
-    });
-
-    addLine(); // start with one empty row
-</script>
+<script src="{% static 'sales/js/sales_entry.js' %}"></script>
 {% endblock %}
