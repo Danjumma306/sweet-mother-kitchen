@@ -29,19 +29,19 @@
         }
         .login-brand {
             display: flex;
+            flex-direction: column;
             align-items: center;
-            gap: 12px;
+            text-align: center;
+            gap: 10px;
             margin-bottom: 22px;
         }
-        .login-brand h1 {
-            margin: 0;
-            font-family: var(--font-brand);
-            font-size: 1.25rem;
-            color: var(--color-forest);
-            line-height: 1.25;
+        .login-brand-logo {
+            width: min(220px, 70vw);
+            height: auto;
+            display: block;
         }
         .login-brand p {
-            margin: 2px 0 0;
+            margin: 0;
             color: var(--color-muted);
             font-size: 0.85rem;
         }
@@ -57,20 +57,21 @@
             margin-top: 22px;
             padding: 14px;
             font-size: 1rem;
+            cursor: pointer;
         }
     </style>
 </head>
 <body>
-{% include "sales/partials/icons.html" %}
 <div class="login-card">
     <div class="login-brand">
-        <div class="brand-mark" aria-hidden="true">
-            <svg viewBox="0 0 24 24"><use href="#icon-cloche"/></svg>
-        </div>
-        <div>
-            <h1>{{ brand_name }}</h1>
-            <p>{{ brand_location }} · Staff login</p>
-        </div>
+        <img
+            class="login-brand-logo"
+            src="{% static 'sales/img/brand_logo.jpg' %}"
+            alt="{{ brand_name }}"
+            width="220"
+            height="220"
+        >
+        <p>{{ brand_location }} · Staff login</p>
     </div>
 
     {% if form.errors %}
