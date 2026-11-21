@@ -140,6 +140,16 @@
                 <span class="op-arrow">→</span>
             </a>
             {% endif %}
+            {% if nav_catalog %}
+            <a class="op-card" href="{% url 'menu_list' %}">
+                <div class="op-icon"><svg viewBox="0 0 24 24"><use href="#icon-menu-board"/></svg></div>
+                <div class="op-body">
+                    <strong>Menu items</strong>
+                    <span>Add, update, or hide items for sale.</span>
+                </div>
+                <span class="op-arrow">→</span>
+            </a>
+            {% endif %}
         </div>
     </section>
 </div>

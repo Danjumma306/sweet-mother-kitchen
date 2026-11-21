@@ -16,6 +16,7 @@
 
 <form method="post">
     {% csrf_token %}
+    <input type="hidden" name="page" value="{{ page_obj.number }}">
 
     {% for category, rows in groups %}
     <section class="card" style="margin-bottom:16px;overflow-x:auto;">
@@ -49,6 +50,8 @@
             </tbody>
         </table>
     </section>
+    {% empty %}
+    <section class="card" style="margin-bottom:16px;"><p class="muted" style="margin:0;">No menu items to close.</p></section>
     {% endfor %}
 
     <section class="card" style="margin-bottom:16px;">
@@ -68,6 +71,8 @@
                value="{% if cash_count %}{{ cash_count.note }}{% endif %}">
     </section>
 
-    <button type="submit" class="btn-primary" style="width:100%;padding:14px;font-size:1rem;">Save closing report</button>
+    <button type="submit" class="btn-primary" style="width:100%;padding:14px;font-size:1rem;">Save this page</button>
 </form>
+
+{% include "sales/partials/pagination.html" %}
 {% endblock %}

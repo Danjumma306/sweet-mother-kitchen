@@ -43,6 +43,12 @@
                 <span class="nav-label">Sales List</span>
             </a>
             {% endif %}
+            {% if nav_catalog %}
+            <a class="nav-link {% if active_nav == nav_item.MENU_CATALOG %}is-active{% endif %}" href="{% url 'menu_list' %}">
+                <svg viewBox="0 0 24 24"><use href="#icon-menu-board"/></svg>
+                <span class="nav-label">Menu</span>
+            </a>
+            {% endif %}
             {% if nav_kitchen %}
             <a class="nav-link {% if active_nav == nav_item.KITCHEN_LOG %}is-active{% endif %}" href="{% url 'kitchen_log' %}">
                 <svg viewBox="0 0 24 24"><use href="#icon-chef"/></svg>
@@ -115,11 +121,16 @@
         <svg viewBox="0 0 24 24"><use href="#icon-chart"/></svg>
         Reports
     </a>
+    {% elif nav_catalog %}
+    <a class="{% if active_nav == nav_item.MENU_CATALOG %}is-active{% endif %}" href="{% url 'menu_list' %}">
+        <svg viewBox="0 0 24 24"><use href="#icon-menu-board"/></svg>
+        Menu
+    </a>
     {% endif %}
     {% if nav_closing %}
     <a class="{% if active_nav == nav_item.SHOP_CLOSING %}is-active{% endif %}" href="{% url 'shop_closing' %}">
         <svg viewBox="0 0 24 24"><use href="#icon-coins"/></svg>
-        Stock
+        Closing
     </a>
     {% elif nav_kitchen %}
     <a class="{% if active_nav == nav_item.KITCHEN_LOG %}is-active{% endif %}" href="{% url 'kitchen_log' %}">

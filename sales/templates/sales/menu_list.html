@@ -1,0 +1,102 @@
+{% extends "sales/base.html" %}
+
+{% block title %}Menu - {{ brand_name }}{% endblock %}
+
+{% block content %}
+<header class="page-head">
+    <div>
+        <h1>Menu items</h1>
+        <p class="sub">Add, update, or hide items without using Django admin.</p>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <a class="btn-outline" href="{% url 'category_list' %}">Categories</a>
+        <a class="btn-primary" href="{% url 'menu_create' %}">
+            <svg width="18" height="18" viewBox="0 0 24 24"><use href="#icon-plus"/></svg>
+            Add item
+        </a>
+    </div>
+</header>
+
+{% for message in messages %}
+    <div class="msg {{ message.tags }}">{{ message }}</div>
+{% endfor %}
+
+<section class="card">
+    <form method="get" class="catalog-filters">
+        <div class="filter-field">
+            <label class="muted" for="q">Search</label>
+            <input class="field-input" type="search" id="q" name="q" value="{{ search }}" placeholder="Name or category" autocomplete="off">
+        </div>
+
+        <div class="filter-field">
+            <label class="muted" for="category">Category</label>
+            <select class="field-select" id="category" name="category">
+                <option value="">All categories</option>
+                {% for category in categories %}
+                <option value="{{ category.id }}" {% if selected_category == category.id|stringformat:"s" %}selected{% endif %}>{{ category.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="filter-field">
+            <label class="muted" for="status">Status</label>
+            <select class="field-select" id="status" name="{{ status_param }}">
+                {% for value, label in status_choices %}
+                <option value="{{ value }}" {% if status == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <button type="submit" class="btn-primary" style="padding:10px 16px;">Filter</button>
+    </form>
+
+    {% if page_obj.paginator.count %}
+    <div style="overflow-x:auto;">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Item</th>
+                <th>Category</th>
+                <th>Unit</th>
+                <th class="num">Price</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in items %}
+            <tr>
+                <td><strong>{{ item.name }}</strong></td>
+                <td>{{ item.category.name }}</td>
+                <td>{{ item.unit }}</td>
+                <td class="num">GH₵ {{ item.price|floatformat:2 }}</td>
+                <td>
+                    {% if item.is_active %}
+                        <span class="badge ok">Available</span>
+                    {% else %}
+                        <span class="badge void">Hidden</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <div class="row-actions">
+                        <a class="link-arrow" href="{% url 'menu_edit' item.pk %}">Edit</a>
+                        <form method="post" action="{% url 'menu_toggle' item.pk %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                            <button type="submit" class="btn-outline" style="padding:6px 12px;">
+                                {% if item.is_active %}Hide{% else %}Show{% endif %}
+                            </button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+    {% include "sales/partials/pagination.html" %}
+    {% else %}
+        <p class="muted">No menu items match these filters.</p>
+    {% endif %}
+</section>
+{% endblock %}

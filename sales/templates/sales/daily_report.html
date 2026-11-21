@@ -106,7 +106,7 @@
 
 <section class="card" style="overflow-x:auto;">
     <h2 class="card-title">Voided sales</h2>
-    {% if voided %}
+    {% if page_obj.paginator.count %}
     <table class="data-table">
         <thead>
             <tr><th>#</th><th>Time</th><th>Cashier</th><th class="num">Amount</th><th>Reason</th><th>Voided by</th></tr>
@@ -124,6 +124,7 @@
             {% endfor %}
         </tbody>
     </table>
+    {% include "sales/partials/pagination.html" %}
     {% else %}
         <p class="muted">No voided sales.</p>
     {% endif %}

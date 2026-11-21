@@ -27,7 +27,7 @@
         <span class="muted">(voided sales are not counted)</span>
     </p>
 
-    {% if sales %}
+    {% if page_obj.paginator.count %}
     <div style="overflow-x:auto;">
     <table class="data-table">
         <thead>
@@ -78,6 +78,7 @@
         </tbody>
     </table>
     </div>
+    {% include "sales/partials/pagination.html" %}
     {% else %}
         <p class="muted">No sales recorded on this date.</p>
     {% endif %}
