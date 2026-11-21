@@ -1,0 +1,54 @@
+{% extends "sales/base.html" %}
+
+{% block title %}{{ page_title }} - {{ brand_name }}{% endblock %}
+
+{% block content %}
+<header class="page-head">
+    <div>
+        <h1>{{ page_title }}</h1>
+        <p class="sub">Managers and owners can maintain the selling menu here.</p>
+    </div>
+    <a class="btn-outline" href="{% url 'menu_list' %}">Back to menu</a>
+</header>
+
+{% if form.errors %}
+    <div class="msg error">Please fix the errors below.</div>
+{% endif %}
+
+<section class="card catalog-form-card">
+    <form method="post" class="catalog-form">
+        {% csrf_token %}
+
+        <label class="muted" for="{{ form.name.id_for_label }}">Item name</label>
+        {{ form.name }}
+        {% if form.name.errors %}<p class="field-error">{{ form.name.errors|striptags }}</p>{% endif %}
+
+        <label class="muted" for="{{ form.category.id_for_label }}">Category</label>
+        {{ form.category }}
+        {% if form.category.errors %}<p class="field-error">{{ form.category.errors|striptags }}</p>{% endif %}
+        <p class="muted" style="margin:4px 0 0;font-size:0.82rem;">
+            Need a new category? <a class="link-arrow" href="{% url 'category_list' %}">Manage categories</a>
+        </p>
+
+        <div class="form-grid-2">
+            <div>
+                <label class="muted" for="{{ form.unit.id_for_label }}">Unit</label>
+                {{ form.unit }}
+                {% if form.unit.errors %}<p class="field-error">{{ form.unit.errors|striptags }}</p>{% endif %}
+            </div>
+            <div>
+                <label class="muted" for="{{ form.price.id_for_label }}">Price (GH₵)</label>
+                {{ form.price }}
+                {% if form.price.errors %}<p class="field-error">{{ form.price.errors|striptags }}</p>{% endif %}
+            </div>
+        </div>
+
+        <label class="check-row">
+            {{ form.is_active }}
+            <span>{{ form.is_active.label }}</span>
+        </label>
+
+        <button type="submit" class="btn-primary" style="width:100%;padding:14px;font-size:1rem;margin-top:8px;">{{ submit_label }}</button>
+    </form>
+</section>
+{% endblock %}

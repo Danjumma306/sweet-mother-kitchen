@@ -56,8 +56,15 @@
         </div>
     </section>
 
-    <aside class="pos-order">
-        <h2>Current order</h2>
+    <div class="order-backdrop" id="order-backdrop" hidden></div>
+
+    <aside class="pos-order" id="pos-order" aria-label="Current order">
+        <div class="order-sheet-top">
+            <button type="button" class="order-sheet-handle" id="order-sheet-close" aria-label="Close order">
+                <span></span>
+            </button>
+            <h2>Current order</h2>
+        </div>
         <div class="order-lines" id="order-lines">
             <p class="order-empty" id="order-empty">Tap menu items to build this order.</p>
         </div>
@@ -85,6 +92,15 @@
         <div id="order-fields"></div>
         <button type="submit" class="btn-primary" id="save-sale" disabled>Save sale</button>
     </aside>
+
+    <button type="button" class="cart-fab" id="cart-fab" aria-controls="pos-order" aria-expanded="false">
+        <span class="cart-fab-icon">
+            <svg viewBox="0 0 24 24"><use href="#icon-cart"/></svg>
+            <span class="cart-fab-count" id="cart-count">0</span>
+        </span>
+        <span class="cart-fab-label">View order</span>
+        <strong class="cart-fab-total">GH₵ <span id="cart-fab-total">0.00</span></strong>
+    </button>
 </form>
 {% endblock %}
 

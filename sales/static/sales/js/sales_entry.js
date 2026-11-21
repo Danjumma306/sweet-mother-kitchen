@@ -14,10 +14,17 @@
     const menu_search = document.getElementById("menu-search");
     const cat_tabs = document.getElementById("cat-tabs");
     const pay_grid = document.getElementById("pay-grid");
+    const pos_order = document.getElementById("pos-order");
+    const order_backdrop = document.getElementById("order-backdrop");
+    const cart_fab = document.getElementById("cart-fab");
+    const cart_count = document.getElementById("cart-count");
+    const cart_fab_total = document.getElementById("cart-fab-total");
+    const order_sheet_close = document.getElementById("order-sheet-close");
     const category_all = cat_tabs.dataset.categoryAll || "all";
 
     let active_category = category_all;
     let search_query = "";
+    let sheet_open = false;
 
     function format_money(amount) {
         return amount.toFixed(2);
@@ -25,6 +32,18 @@
 
     function line_key(item_id) {
         return String(item_id);
+    }
+
+    function is_mobile_sheet() {
+        return window.matchMedia("(max-width: 900px)").matches;
+    }
+
+    function set_sheet_open(open) {
+        sheet_open = open && is_mobile_sheet();
+        pos_order.classList.toggle("is-open", sheet_open);
+        order_backdrop.hidden = !sheet_open;
+        cart_fab.setAttribute("aria-expanded", sheet_open ? "true" : "false");
+        document.body.classList.toggle("order-sheet-open", sheet_open);
     }
 
     function sync_hidden_fields() {
@@ -54,9 +73,11 @@
         });
 
         let total = 0;
+        let item_count = 0;
         lines.forEach(function (line) {
             const line_total = line.quantity * line.price;
             total += line_total;
+            item_count += line.quantity;
 
             const row = document.createElement("div");
             row.className = "order-line";
@@ -85,7 +106,11 @@
             order_lines.appendChild(row);
         });
 
-        grand_total.textContent = format_money(total);
+        const money = format_money(total);
+        grand_total.textContent = money;
+        cart_fab_total.textContent = money;
+        cart_count.textContent = String(item_count);
+        cart_fab.classList.toggle("has-items", item_count > 0);
         save_sale.disabled = lines.length === 0;
         sync_hidden_fields();
     }
@@ -167,6 +192,7 @@
         cat_tabs.querySelectorAll(".cat-tab").forEach(function (node) {
             node.classList.toggle("is-active", node === tab);
         });
+        tab.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" });
         filter_menu();
     });
 
@@ -184,6 +210,30 @@
             node.classList.toggle("is-selected", node === option);
         });
         payment_input.value = option.dataset.method;
+    });
+
+    cart_fab.addEventListener("click", function () {
+        set_sheet_open(true);
+    });
+
+    order_sheet_close.addEventListener("click", function () {
+        set_sheet_open(false);
+    });
+
+    order_backdrop.addEventListener("click", function () {
+        set_sheet_open(false);
+    });
+
+    window.addEventListener("resize", function () {
+        if (!is_mobile_sheet()) {
+            set_sheet_open(false);
+        }
+    });
+
+    document.addEventListener("keydown", function (event) {
+        if (event.key === "Escape" && sheet_open) {
+            set_sheet_open(false);
+        }
     });
 
     render_order();

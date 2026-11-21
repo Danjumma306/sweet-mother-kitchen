@@ -16,6 +16,7 @@
 
 <form method="post">
     {% csrf_token %}
+    <input type="hidden" name="page" value="{{ page_obj.number }}">
 
     {% for category, rows in groups %}
     <section class="card" style="margin-bottom:16px;overflow-x:auto;">
@@ -38,8 +39,14 @@
             </tbody>
         </table>
     </section>
+    {% empty %}
+    <section class="card"><p class="muted" style="margin:0;">No menu items to log.</p></section>
     {% endfor %}
 
-    <button type="submit" class="btn-primary" style="width:100%;padding:14px;font-size:1rem;">Save today's log</button>
+    {% if groups %}
+    <button type="submit" class="btn-primary" style="width:100%;padding:14px;font-size:1rem;">Save this page</button>
+    {% endif %}
 </form>
+
+{% include "sales/partials/pagination.html" %}
 {% endblock %}
