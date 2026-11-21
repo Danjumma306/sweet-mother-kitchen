@@ -12,8 +12,31 @@
             display: grid;
             place-items: center;
             padding: 24px;
+            position: relative;
+            overflow: hidden;
+            background: #1a2e1f;
+        }
+        .login-bg {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            overflow: hidden;
+            pointer-events: none;
+        }
+        .login-bg video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .login-bg::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: rgba(12, 28, 18, 0.42);
         }
         .login-card {
+            position: relative;
+            z-index: 1;
             width: 100%;
             max-width: 400px;
             background: var(--color-surface);
@@ -62,6 +85,18 @@
     </style>
 </head>
 <body>
+<div class="login-bg" aria-hidden="true">
+    <video
+        autoplay
+        muted
+        loop
+        playsinline
+        preload="auto"
+    >
+        <source src="{% static 'sales/video/bgvid.mp4' %}" type="video/mp4">
+    </video>
+</div>
+
 <div class="login-card">
     <div class="login-brand">
         <img
