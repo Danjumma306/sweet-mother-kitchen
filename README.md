@@ -1,15 +1,15 @@
-# Sweet Mother Kitchen: Daily Sales Report System
+# Sweet Mother's Kitchen: Daily Sales Report System
 
 A web application that records restaurant sales and produces accurate daily
 sales reports, replacing handwritten exercise books.
 
-> **Status:** In development (Sprint 1). Built for the COSC361 / BIT301
+> **Status:** Core features complete. Built for the COSC361 / BIT301
 > "Code for Community" project. Uses test data only; no real customer or
 > personal information is stored.
 
 ## The Problem
 
-Sweet Mother Kitchen prepares its daily sales report by hand. Totals are
+Sweet Mother's Kitchen prepares its daily sales report by hand. Totals are
 often wrong, payments from different methods (cash, mobile money, card) get
 mixed up, and past reports are hard to find. The owner cannot trust the
 figures or easily compare one day with another.
@@ -19,22 +19,27 @@ figures or easily compare one day with another.
 | Feature | Description | Status |
 |---|---|---|
 | Sales Entry | Record each sale: items grouped by category, quantity, unit price, live totals, payment method | Done |
-| Login and roles | Staff login with Cashier, Manager and Owner roles | Done |
+| Login and roles | Staff login with Cashier, Kitchen, Manager and Owner roles | Done |
 | Void handling | Managers void mistaken sales with a recorded reason; voided sales are excluded from totals | Done |
 | Daily Sales Report | Gross, voids and net sales, sales by payment method and category, best sellers, previous-day comparison | Done |
 | Report Archive | Search past days by date range, view each day's report and export to CSV | Done |
+| Kitchen Production Log | Kitchen staff record how much of each menu item was prepared that day | Done |
+| Shop Closing Report | Cashiers record leftovers, sold-out items, and cash counted against expected cash sales | Done |
+| Staff POS UI | Role-based sidebar navigation and refreshed staff screens for day-to-day use | Done |
 
 ## Users
 
-- **Cashiers / waitresses:** record each sale
-- - **Manager:** reviews sales and voids mistaken ones
+- **Cashiers / waitresses:** record each sale and complete the shop closing report
+- **Kitchen staff:** record daily production quantities
+- **Manager:** reviews sales, voids mistakes, views reports, and can use kitchen and closing screens
 - **Owner:** reads daily reports and compares days
 
 ## Tech Stack
 
 - **Backend:** Python, Django 5.0
-- **Database:** MySQL (MariaDB, via XAMPP)
+- **Database:** MySQL (MariaDB, via XAMPP) by default; SQLite available via `DB_ENGINE=sqlite`
 - **Frontend:** HTML, CSS and JavaScript (Django templates)
+- **Config:** Environment variables for `SECRET_KEY`, `DEBUG`, `ALLOWED_HOSTS` and database settings
 - **Version control:** Git and GitHub (issues and a Projects board)
 
 > Django is pinned to 5.0 in `requirements.txt` because XAMPP's MariaDB 10.4
@@ -48,12 +53,16 @@ sweet-mother-kitchen/
 ├── sales/                   The main app
 │   ├── management/commands/
 │   │   ├── seed_menu.py     Loads test menu items
-│   │   └── setup_roles.py   Creates the Cashier, Manager and Owner groups
+│   │   └── setup_roles.py   Creates Cashier, Kitchen, Manager and Owner groups
 │   ├── migrations/          Database migrations
+│   ├── static/sales/        CSS and JavaScript for the staff UI
 │   ├── templates/
 │   │   ├── registration/    Login page
-│   │   └── sales/           Base layout, home, sales entry, sales list, reports
-│   ├── models.py            Category, MenuItem, Sale, SaleLine
+│   │   └── sales/           Base layout, home, sales, kitchen, closing, reports
+│   ├── constants.py         Brand, nav and UI constants
+│   ├── context_processors.py Role-based navigation helpers
+│   ├── models.py            Category, MenuItem, Sale, SaleLine, KitchenEntry,
+│   │                        ClosingEntry, CashCount
 │   ├── views.py             Page logic
 │   └── urls.py              Sales URLs
 ├── manage.py
@@ -67,7 +76,8 @@ sweet-mother-kitchen/
 
 - Python 3.10 or newer
 - Git
-- [XAMPP](https://www.apachefriends.org/) with MySQL (MariaDB 10.4 or newer)
+- [XAMPP](https://www.apachefriends.org/) with MySQL (MariaDB 10.4 or newer),
+  unless you use SQLite (see below)
 
 ### Installation
 
@@ -90,24 +100,32 @@ sweet-mother-kitchen/
    pip install -r requirements.txt
    ```
 
-4. Start **MySQL** in the XAMPP Control Panel. Then open
+4. Choose a database:
+
+   **MySQL (default):** Start MySQL in the XAMPP Control Panel. Then open
    `http://localhost/phpmyadmin`, click the **SQL** tab, and run:
    ```sql
    CREATE DATABASE smk_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
    ```
 
-5. Check the `DATABASES` block in `config/settings.py`. The defaults are user
-   `root`, an empty password, host `127.0.0.1` and port `3306`. Change them
-   if your XAMPP setup is different.
+   Defaults are user `root`, empty password, host `127.0.0.1` and port `3306`.
+   Override with `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_HOST` and `DB_PORT`
+   if needed.
 
-6. Create the tables, test data and roles:
+   **SQLite (local/dev alternative):**
+   ```bash
+   set DB_ENGINE=sqlite
+   ```
+   On macOS or Linux: `export DB_ENGINE=sqlite`.
+
+5. Create the tables, test data and roles:
    ```bash
    python manage.py migrate
    python manage.py seed_menu
    python manage.py setup_roles
    ```
 
-7. Create an admin account:
+6. Create an admin account:
    ```bash
    python manage.py createsuperuser
    ```
@@ -119,15 +137,30 @@ python manage.py runserver
 ```
 
 Open `http://127.0.0.1:8000/` and log in. The `/admin/` site is for managing
-users and menu items.
+users and menu items. Assign each user to the right group (Cashier, Kitchen,
+Manager or Owner) in the admin.
+
+### Deployment notes
+
+For production, set environment variables instead of editing code:
+
+| Variable | Purpose | Example |
+|---|---|---|
+| `SECRET_KEY` | Django secret | a long random string |
+| `DEBUG` | Debug mode (`True` / `False`) | `False` |
+| `ALLOWED_HOSTS` | Comma-separated hosts | `example.com,www.example.com` |
+| `DB_ENGINE` | `mysql` (default) or `sqlite` | `mysql` |
+| `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT` | MySQL connection | as for your host |
+
+When `DEBUG` is `False`, secure session and CSRF cookies are enabled.
 
 ### Troubleshooting
 
 | Problem | Fix |
 |---|---|
 | `Couldn't import Django` | Activate the virtual environment: `venv\Scripts\activate` |
-| `ALLOWED_HOSTS` error | Make sure `DEBUG = True` in `config/settings.py` |
-| Can't connect to MySQL | Start MySQL in XAMPP and check the port in `settings.py` |
+| `ALLOWED_HOSTS` error | Set `ALLOWED_HOSTS` (and keep `DEBUG=True` only for local work) |
+| Can't connect to MySQL | Start MySQL in XAMPP and check `DB_*` env vars or defaults |
 | `MariaDB 10.11 or later is required` | Install the pinned Django: `pip install -r requirements.txt` |
 | Empty item dropdown | Run `python manage.py seed_menu` |
 
@@ -135,11 +168,12 @@ users and menu items.
 
 ### Roles
 
-| Role | Signs in and sees | Can do |
+| Role | Can access | Can do |
 |---|---|---|
-| Cashier | Goes straight to the **New Sale** form | Record sales |
-| Manager | Home page with **New Sale**, **Sales List**, **Daily Report** and **Report Archive** | Record sales, void mistakes, view reports |
-| Owner | Home page with **New Sale**, **Daily Report** and **Report Archive** | View reports and export CSV |
+| Cashier | New Sale, Shop Closing | Record sales; save leftovers, sold-out items and cash counted |
+| Kitchen | Kitchen Log | Record quantities prepared for each menu item |
+| Manager | New Sale, Sales List, Kitchen Log, Shop Closing, Daily Report, Report Archive | Record sales, void mistakes, kitchen/closing logs, view and export reports |
+| Owner | Daily Report, Report Archive | View reports and export CSV |
 
 ### Recording a sale
 
@@ -157,15 +191,20 @@ users and menu items.
 3. The sale stays in the records, marked **Voided** with the reason and the
    manager's name, and is left out of the day's total.
 
-## Team
+### Kitchen production log (kitchen staff and managers)
 
+1. Open **Kitchen Log**.
+2. Enter how many of each item were prepared today.
+3. Click **Save**. Entries can be updated again on the same day.
 
-| Member | Role |
-|---|---|
-| Desmond Zambogunaa | Quality and Documentation Lead |
-| Comfort Akorfa Yikpa | Product Owner |
-| Mohammed Osman | Scrum Master |
+### Shop closing report (cashiers and managers)
 
+1. Open **Shop Closing** at the end of the day.
+2. For each item, enter leftovers and tick **Sold out** when nothing remains.
+   Sold quantities for the day are shown for reference.
+3. Enter **Cash counted** and an optional note. Expected cash from cash sales
+   and any difference are shown on the page.
+4. Click **Save closing report**.
 
 ### Viewing reports (managers and owners)
 
@@ -179,6 +218,14 @@ users and menu items.
 
 Net sales are gross sales minus voided sales.
 
+## Team
+
+| Member | Role |
+|---|---|
+| Desmond Zambogunaa | Quality and Documentation Lead |
+| Comfort Akorfa Yikpa | Product Owner |
+| Mohammed Osman | Scrum Master |
+
 ## Roadmap
 
 - [x] Database schema and data models
@@ -189,7 +236,10 @@ Net sales are gross sales minus voided sales.
 - [x] Void handling for managers
 - [x] Daily Sales Report
 - [x] Report Archive with search and CSV export
-- [ ] Kitchen production log and shop closing report (to be confirmed with the client)
+- [x] Kitchen production log
+- [x] Shop closing report (leftovers, sold-out, cash count)
+- [x] Role-based staff UI refresh
+- [x] Environment-based settings for deployment
 
 ## Contributing
 
